@@ -47,10 +47,13 @@
             </template>
           </el-table-column>
           <el-table-column prop="chaTitle" label="章节标题" min-width="200" />
-          <el-table-column label="视频" width="120" align="center">
-            <template #default="scope">
-              <el-tag v-if="scope.row.chaUrl" type="success" size="small">已上传</el-tag>
-              <el-tag v-else type="info" size="small">未上传</el-tag>
+          <el-table-column prop="videoStatus" label="视频状态" width="120" align="center">
+            <template #default="{ row }">
+              <span 
+                :class="row.chaUrl ? 'video-status-uploaded' : 'video-status-not-uploaded'"
+              >
+                {{ row.chaUrl ? '已上传' : '未上传' }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="250" align="center">
@@ -499,28 +502,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 使用Element Plus自带的CSS变量 */
 .chapter-manage-container {
   padding: 24px;
   min-height: 100vh;
+  background-color: var(--el-bg-color-page);
 }
 
-/* 主卡片样式 */
+/* 简化的卡片样式 - 只有抬起效果 */
 .chapter-card {
   border-radius: 8px;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.chapter-card .el-card__header {
-  background: #fafafa;
-  border-bottom: 1px solid #ebeef5;
-  padding: 20px 24px;
+.chapter-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--el-box-shadow-light);
 }
 
-.chapter-card .el-card__body {
-  padding: 24px;
-}
-
+/* 标题样式 */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -531,114 +531,188 @@ onMounted(() => {
 
 .card-header h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-color-primary);
 }
 
 .selected-course-display {
   font-size: 14px;
-  color: #606266;
+  color: var(--el-text-color-regular);
+  padding: 8px 16px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 20px;
+  border: 1px solid var(--el-border-color);
 }
 
-/* 操作区域样式 */
-.operation-container {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
+/* 视频状态标签 */
+.video-status-uploaded {
+  padding: 4px 12px;
+  background-color: var(--el-color-success);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.operation-container .el-button {
-  margin-right: 12px;
-  margin-bottom: 8px;
+.video-status-not-uploaded {
+  padding: 4px 12px;
+  background-color: var(--el-color-info);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-/* 课程选择区域 */
-.course-select {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #ffffff;
-  border-radius: 6px;
-  border: 1px solid #ebeef5;
+/* 返回按钮 */
+:deep(.el-button--text) {
+  color: var(--el-color-primary) !important;
 }
 
-/* 章节列表容器 */
+/* 操作区域简化样式 */
+.operation-container,
+.course-select,
 .chapter-list-container {
-  background: #ffffff;
-  border-radius: 6px;
-  padding: 16px;
-  border: 1px solid #ebeef5;
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* 表格样式 */
-.el-table {
-  border-radius: 6px;
-  overflow: hidden;
+.operation-container:hover,
+.course-select:hover,
+.chapter-list-container:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow-light);
 }
 
-.el-table th {
-  background: #f5f7fa;
-  color: #606266;
-  font-weight: 600;
+/* 表格样式使用Element默认 */
+:deep(.el-table) {
+  background-color: var(--el-bg-color);
 }
 
-.el-table td {
-  border-bottom: 1px solid #ebeef5;
+:deep(.el-table th.el-table__cell) {
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
 }
 
-.el-table--border {
-  border: 1px solid #ebeef5;
+:deep(.el-table td.el-table__cell) {
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
+
+:deep(.el-table tr:hover td.el-table__cell) {
+  background-color: var(--el-fill-color-light);
 }
 
 /* 表单样式 */
-.el-form {
-  background: #ffffff;
+:deep(.el-form-item__label) {
+  color: var(--el-text-color-primary);
 }
 
-.el-select {
-  border-radius: 6px;
+:deep(.el-input__wrapper) {
+  background-color: var(--el-bg-color);
+  border-color: var(--el-border-color);
 }
 
-.el-input {
-  border-radius: 6px;
-}
-
-.el-input__wrapper {
-  border-radius: 6px;
-}
-
-/* 按钮样式 */
-.el-button {
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.el-button:hover {
-  transform: translateY(-1px);
-}
-
-.el-button--link {
-  border-radius: 4px;
-  padding: 4px 8px;
+:deep(.el-input__inner) {
+  color: var(--el-text-color-primary);
 }
 
 /* 对话框样式 */
-.el-dialog {
+:deep(.el-dialog) {
+  background-color: var(--el-bg-color);
+}
+
+:deep(.el-dialog__header) {
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+:deep(.el-dialog__title) {
+  color: var(--el-text-color-primary);
+}
+
+:deep(.el-dialog__body) {
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
+
+/* 下拉菜单 */
+:deep(.el-select-dropdown) {
+  background-color: var(--el-bg-color);
+  border-color: var(--el-border-color);
+}
+
+:deep(.el-select-dropdown__item) {
+  color: var(--el-text-color-primary);
+  background-color: var(--el-bg-color);
+}
+
+:deep(.el-select-dropdown__item:hover) {
+  background-color: var(--el-fill-color-light);
+}
+
+:deep(.el-select-dropdown__item.selected) {
+  background-color: var(--el-color-primary);
+  color: white;
+}
+
+/* 上传组件 */
+:deep(.el-upload) {
+  border-color: var(--el-border-color);
+  background-color: var(--el-bg-color);
+}
+
+:deep(.el-upload:hover) {
+  border-color: var(--el-color-primary);
+}
+
+.upload-container {
+  text-align: center;
+}
+
+.video-uploader-icon {
+  font-size: 48px;
+  color: var(--el-text-color-placeholder);
+  width: 100%;
+  height: 120px;
+  line-height: 120px;
+  text-align: center;
+}
+
+:deep(.el-upload__text) {
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+:deep(.el-upload__text em) {
+  color: var(--el-color-primary);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.upload-tip {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+.video-preview {
+  padding: 12px;
+}
+
+.video-preview video {
   border-radius: 8px;
 }
 
-.el-dialog__header {
-  background: #fafafa;
-  border-bottom: 1px solid #ebeef5;
-  border-radius: 8px 8px 0 0;
-}
-
-/* 空状态样式 */
-.el-empty {
-  padding: 40px 20px;
+/* 空状态 */
+:deep(.el-empty__description) {
+  color: var(--el-text-color-regular);
 }
 
 /* 响应式设计 */
@@ -647,18 +721,21 @@ onMounted(() => {
     padding: 16px;
   }
   
-  .chapter-card .el-card__body {
+  .operation-container,
+  .course-select,
+  .chapter-list-container {
     padding: 16px;
+    margin-bottom: 12px;
   }
   
   .card-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 12px;
   }
   
-  .operation-container .el-button {
-    width: 100%;
-    margin-right: 0;
+  .card-header h3 {
+    font-size: 20px;
   }
 }
 </style>

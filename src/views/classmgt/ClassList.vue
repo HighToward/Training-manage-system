@@ -409,11 +409,25 @@ const formatDate = (dateTimeStr) => {
   flex: 1;
 }
 
+/* 在现有的 .class-name 样式后添加黑夜模式适配 */
 .class-name {
   margin: 0 0 12px 0;
   font-size: 18px;
   font-weight: 600;
   color: #303133;
+  transition: color 0.3s ease; /* 添加过渡效果 */
+}
+
+/* 黑夜模式下班级标题颜色适配 */
+[data-theme="dark"] .class-name {
+  color: #e2e8f0 !important;
+}
+
+/* 同时确保其他相关标题也适配黑夜模式 */
+[data-theme="dark"] .search-title,
+[data-theme="dark"] .page-title h2,
+[data-theme="dark"] .meta-item {
+  color: var(--text-color) !important;
 }
 
 .class-meta {

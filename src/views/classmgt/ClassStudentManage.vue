@@ -260,4 +260,63 @@ const removeStudent = async (studentId) => {
     padding: 12px 16px;
   }
 }
+
+/* 在现有样式后添加黑夜模式适配 */
+
+/* 黑夜模式适配 */
+[data-theme="dark"] .class-student-manage-container {
+  background: var(--bg-color);
+}
+
+[data-theme="dark"] .el-page-header {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-card {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .el-card .el-card__header {
+  background: var(--hover-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-table {
+  background: var(--card-bg);
+}
+
+[data-theme="dark"] .el-table th {
+  background: var(--hover-bg);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-table td {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-input__wrapper {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .el-input__inner {
+  color: var(--text-color) !important;
+}
+
+[data-theme="dark"] .el-button {
+  background: var(--hover-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-button:hover {
+  background: var(--hover-bg);
+  opacity: 0.8;
+}
 </style>

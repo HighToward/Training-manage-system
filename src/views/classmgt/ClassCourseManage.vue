@@ -275,34 +275,155 @@ const transferFilterMethod = (query, item) => {
 
 <style scoped>
 .class-course-manage-container {
-  padding: 20px;
+  padding: 24px;
+  background: #f5f7fa;
+  min-height: 100vh;
 }
+
+/* 页面头部样式 */
 .el-page-header {
+  background: #ffffff;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
+
+/* 卡片样式优化 */
 .el-card {
-  margin-bottom: 20px; /* 如果并排，则不需要 */
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
+
+.el-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.el-card .el-card__header {
+  background: #fafafa;
+  border-bottom: 1px solid #ebeef5;
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.el-card .el-card__body {
+  padding: 20px;
+}
+
+/* 表格样式 */
 .el-table {
-  font-size: 13px; /* 调整表格字体大小，如果需要 */
+  border-radius: 6px;
+  overflow: hidden;
 }
-/* 如果使用 ElTransfer，可能需要一些样式调整 */
-/*
-.el-transfer {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+
+.el-table th {
+  background: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
 }
-:deep(.el-transfer-panel) {
-  width: 300px; // 调整穿梭框面板宽度
-  height: 400px; // 调整穿梭框面板高度
+
+.el-table td {
+  border-bottom: 1px solid #ebeef5;
 }
-:deep(.el-transfer-panel__body) {
-  height: calc(100% - 41px); // 减去头部的 আনুমানিক 高度
+
+/* 搜索框样式 */
+.el-input {
+  border-radius: 6px;
 }
-:deep(.el-transfer-panel__list.is-filterable) {
-   height: calc(100% - 41px); // 减去筛选框的 আনুমানিক 高度
+
+.el-input__wrapper {
+  border-radius: 6px;
 }
-*/
+
+/* 按钮样式 */
+.el-button {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.el-button:hover {
+  transform: translateY(-1px);
+}
+
+.el-button--link {
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .class-course-manage-container {
+    padding: 16px;
+  }
+  
+  .el-col {
+    margin-bottom: 20px;
+  }
+  
+  .el-page-header {
+    padding: 12px 16px;
+  }
+}
+
+/* 黑夜模式适配 */
+[data-theme="dark"] .class-course-manage-container {
+  background: var(--bg-color);
+}
+
+[data-theme="dark"] .el-page-header {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-card {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .el-card .el-card__header {
+  background: var(--hover-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-table {
+  background: var(--card-bg);
+}
+
+[data-theme="dark"] .el-table th {
+  background: var(--hover-bg);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-table td {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-input__wrapper {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .el-input__inner {
+  color: var(--text-color) !important;
+}
+
+[data-theme="dark"] .el-button {
+  background: var(--hover-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] .el-button:hover {
+  background: var(--hover-bg);
+  opacity: 0.8;
+}
 </style>
