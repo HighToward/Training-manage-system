@@ -1,22 +1,20 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router';
 import ApiTest from '@/components/ApiTest.vue';
 import Login from '../views/Login.vue';
 
 const routes = [
   {
     path: '/',
-    name: 'HomeRedirect', // 给根路径一个名字
+    name: 'HomeRedirect',
     beforeEnter: (to, from, next) => {
       const token = localStorage.getItem('token');
       const isAuthenticated = token && token !== "null" && token !== "undefined";
       if (isAuthenticated) {
-        next('/course/list'); // 如果已登录，则跳转到课程列表
+        next('/course/list');
       } else {
-        next({ name: 'Login' }); // 如果未登录，则跳转到登录页
+        next({ name: 'Login' });
       }
     }
-    // 如果不想用 beforeEnter，也可以指向一个组件，在组件内部逻辑跳转
-    // component: () => import('@/views/HomeRedirector.vue')
   },
   {
     path: '/api-test',
@@ -24,51 +22,64 @@ const routes = [
     component: ApiTest,
     meta: { title: 'API测试' }
   },
+  // 课程管理路由组
   {
     path: '/course/list',
     name: 'CourseList',
     component: () => import('../views/course/CourseList.vue'),
-    meta: { title: '课程列表' }
+    meta: { 
+      title: '课程列表',
+      parentMenu: 'course-management'
+    }
   },
   {
-    path: '/course/chapter',
-    name: 'CourseChapter',
-    component: () => import('../views/course/ChapterManage.vue'),
-    meta: { title: '章节管理' }
+    path: '/course/detail/:id',
+    name: 'CourseDetail',
+    component: () => import('../views/course/CourseDetail.vue'),
+    meta: { 
+      title: '课程详情',
+      parentTitle: '课程管理',
+      parentMenu: 'course-management'
+    },
+    props: true
   },
-  {
-    path: '/course/chapter/:id',
-    name: 'CourseChapterDetail',
-    component: () => import('../views/course/ChapterManage.vue'),
-    meta: { title: '章节管理' }
-  },
+  // 班级管理路由组
   {
     path: '/class/list',
     name: 'ClassList',
     component: () => import('../views/classmgt/ClassList.vue'),
-    meta: { title: '班级列表', parentTitle: '班级管理' } // parentTitle 可选，如果一级菜单名和它一样则不用特别显示
+    meta: { 
+      title: '班级列表',
+      parentMenu: 'class-main-management'
+    }
   },
   {
     path: '/class/students/:classId',
-    name: 'ClassStudentManage',
+    name: 'ClassStudents',
     component: () => import('../views/classmgt/ClassStudentManage.vue'),
-    meta: { title: '班级学生管理', parentTitle: '班级管理' },
-    props: true
+    meta: { 
+      title: '学生管理',
+      parentTitle: '班级管理',
+      parentMenu: 'class-main-management'
+    }
   },
   {
     path: '/class/courses/:classId',
-    name: 'ClassCourseManage', // ClassCourseManage.vue
+    name: 'ClassCourses',
     component: () => import('../views/classmgt/ClassCourseManage.vue'),
-    meta: { title: '班级课程管理', parentTitle: '班级管理' }, // parentTitle 应为 "班级管理"
-    props: true
+    meta: { 
+      title: '课程管理',
+      parentTitle: '班级管理',
+      parentMenu: 'class-main-management'
+    }
   },
   {
     path: '/login',
     name: 'Login',
     component: Login,
-    meta: { title: '登录', guest: true } // guest: true 表示该页面不需要登录即可访问
+    meta: { title: '登录' }
   }
-]
+];
 
 const router = createRouter({
   history: createWebHistory(),

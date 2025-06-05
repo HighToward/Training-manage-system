@@ -53,7 +53,7 @@
     <!-- 课程卡片列表 -->
     <div class="course-grid" v-loading="loading">
       <div v-for="(item, index) in courseList" :key="item.id" class="course-card-wrapper">
-        <el-card class="course-card" shadow="hover">
+        <el-card class="course-card" shadow="hover" @click="handleViewDetail(item)">
           <div class="card-image">
             <el-image
               v-if="item.couPic"
@@ -105,7 +105,7 @@
               </div>
             </div>
             
-            <div class="card-actions">
+            <div class="card-actions" @click.stop>
               <el-button type="primary" plain @click="handleEdit(item)" class="action-btn">
                 <el-icon><Edit /></el-icon>
                 编辑
@@ -498,9 +498,14 @@ const handleEdit = async (row) => {
   }
 }
 
+// 查看课程详情
+const handleViewDetail = (row) => {
+  router.push(`/course/detail/${row.id}`)
+}
+
 // 管理章节
 const handleChapter = (row) => {
-  router.push(`/course/chapter/${row.id}`)
+  router.push(`/course/detail/${row.id}`)
 }
 
 // 删除课程
@@ -723,11 +728,12 @@ onMounted(() => {
   overflow: hidden;
   transition: all 0.3s ease;
   background: #ffffff;
+  cursor: pointer;
 }
 
 .course-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
 }
 
 .card-image {

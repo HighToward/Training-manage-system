@@ -10,18 +10,12 @@
         </div>
       </template>
 
-      <div class="operation-container" v-if="selectedCourseId && courseInfo.id">
-        <el-button type="primary" @click="handleAddChapter">
-          <el-icon><Plus /></el-icon>添加章节到 "{{ courseInfo.couName }}"
-        </el-button>
-        <el-button @click="handleBack">
-          <el-icon><Back /></el-icon>返回课程列表
-        </el-button>
-      </div>
-
-      <div class="course-select" v-if="courseOptions.length > 0">  <el-form :inline="true">
+      <!-- 合并选择课程和操作按钮到同一行 -->
+      <div class="course-select-and-operations" v-if="courseOptions.length > 0">
+        <el-form :inline="true" class="course-select-form">
           <el-form-item label="选择课程">
-            <el-select style="width:250px;" v-model="selectedCourseId" placeholder="请选择课程" @change="handleCourseChange" clearable> <el-option
+            <el-select style="width:250px;" v-model="selectedCourseId" placeholder="请选择课程（不选择将显示所有课程章节）" @change="handleCourseChange" clearable> 
+              <el-option
                 v-for="item in courseOptions"
                 :key="item.id"
                 :label="item.couName"
@@ -29,25 +23,59 @@
               />
             </el-select>
           </el-form-item>
-          </el-form>
+        </el-form>
+        
+        <!-- 操作按钮区域 -->
+        <div class="operation-buttons" v-if="selectedCourseId && courseInfo.id">
+          <el-button type="primary" @click="handleAddChapter">
+            <el-icon><Plus /></el-icon>添加章节到 "{{ courseInfo.couName }}"
+          </el-button>
+          <el-button @click="handleBack">
+            <el-icon><Back /></el-icon>返回课程列表
+          </el-button>
+        </div>
       </div>
 
-      <div v-if="selectedCourseId && courseInfo.id" class="chapter-list-container">
-        <el-empty v-if="chapterList.length === 0 && !loadingChapters" description="该课程下暂无章节数据，请添加章节。" />
+      <!-- 显示所有章节或特定课程章节 -->
+      <div class="chapter-list-container">
+        <el-empty v-if="chapterList.length === 0 && !loadingChapters" :description="selectedCourseId ? '该课程下暂无章节数据，请添加章节。' : '暂无章节数据。'" />
         <el-table
           v-else
-          v-loading="loadingChapters" :data="chapterList"
+          v-loading="loadingChapters" 
+          :data="chapterList"
           border
           row-key="id"
           style="width: 100%"
+          :default-sort="getDefaultSort()"
         >
-          <el-table-column label="序号" width="80" align="center">
+          <!-- 课程名称列 - 仅在显示所有章节时显示 -->
+          <el-table-column v-if="!selectedCourseId" prop="courseName" label="课程名称" width="180" sortable />
+          
+          <!-- 序号列 - 仅在选择课程时显示 -->
+          <el-table-column v-if="selectedCourseId" label="序号" width="80" align="center" prop="chaIndex" sortable>
             <template #default="scope">
               <span>{{ scope.row.chaIndex }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="chaTitle" label="章节标题" min-width="200" />
-          <el-table-column prop="videoStatus" label="视频状态" width="120" align="center">
+          
+          <!-- 章节标题列 -->
+          <el-table-column prop="chaTitle" label="章节标题" :min-width="selectedCourseId ? '160' : '140'" sortable />
+          
+          <!-- 章节创建时间列 -->
+          <el-table-column prop="createTime" label="创建时间" width="120" align="center" sortable>
+            <template #default="{ row }">
+              <span>{{ formatDate(row.createTime) }}</span>
+            </template>
+          </el-table-column>
+          
+          <!-- 视频上传时间列 -->
+          <el-table-column prop="videoUploadTime" label="视频上传时间" width="130" align="center" sortable>
+            <template #default="{ row }">
+              <span>{{ row.chaUrl ? formatDate(row.videoUploadTime || row.updateTime) : '-' }}</span>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="videoStatus" label="视频状态" width="120" align="center" sortable :sort-method="sortVideoStatus">
             <template #default="{ row }">
               <span 
                 :class="row.chaUrl ? 'video-status-uploaded' : 'video-status-not-uploaded'"
@@ -56,23 +84,40 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="250" align="center">
+          
+          <!-- 操作列 -->
+          <el-table-column label="操作" width="280" align="center">
             <template #default="scope">
-              <el-button type="primary" link @click="handleEditChapter(scope.row)">
+              <el-button 
+                type="primary" 
+                link 
+                @click="handleEditChapter(scope.row)"
+                :disabled="!selectedCourseId"
+              >
                 <el-icon><Edit /></el-icon>编辑
               </el-button>
-              <el-button type="primary" link @click="openVideoUploadDialog(scope.row)">
+              <el-button 
+                type="primary" 
+                link 
+                @click="openVideoUploadDialog(scope.row)"
+                :disabled="!selectedCourseId"
+              >
                 <el-icon><Upload /></el-icon>上传/更新视频
               </el-button>
-              <el-button type="danger" link @click="handleDeleteChapter(scope.row)">
+              <el-button 
+                type="danger" 
+                link 
+                @click="handleDeleteChapter(scope.row)"
+                :disabled="!selectedCourseId"
+              >
                 <el-icon><Delete /></el-icon>删除
               </el-button>
             </template>
           </el-table-column>
         </el-table>
       </div>
-      <el-empty v-else-if="!selectedCourseId && courseOptions.length > 0 && !loadingCourses" description="请先从上方选择一个课程来管理其章节。" />
-      <el-empty v-else-if="courseOptions.length === 0 && !loadingCourses" description="暂无可管理的课程。" />
+      
+      <el-empty v-if="courseOptions.length === 0 && !loadingCourses" description="暂无可管理的课程。" />
       <div v-if="loadingCourses">正在加载课程列表...</div>
     </el-card>
 
@@ -238,23 +283,66 @@ const fetchChapterList = async (courseId) => {
 };
 
 // 获取所有章节
-// const fetchAllChapters = async () => {
-//   try {
-//     const response = await chapterApi.getAllChapters()
-//     chapterList.value = response
-//   } catch (error) {
-//     console.error('获取所有章节失败:', error)
-//     ElMessage.error('获取所有章节失败')
-//   }
-// }
+const fetchAllChapters = async () => {
+  loadingChapters.value = true;
+  try {
+    const response = await chapterApi.getAllChapters();
+    // 为每个章节添加课程名称
+    const chaptersWithCourseName = (response || []).map(chapter => {
+      const course = courseOptions.value.find(c => c.id === chapter.couId);
+      return {
+        ...chapter,
+        courseName: course ? course.couName : '未知课程'
+      };
+    });
+    
+    // 默认排序：只按创建时间逆序排序
+    const sortedChapters = chaptersWithCourseName.sort((a, b) => {
+      const timeA = new Date(a.createTime || 0).getTime();
+      const timeB = new Date(b.createTime || 0).getTime();
+      return timeB - timeA; // 逆序：新的在前
+    });
+    
+    chapterList.value = sortedChapters;
+  } catch (error) {
+    console.error('获取所有章节失败:', error);
+    ElMessage.error('获取所有章节失败');
+    chapterList.value = [];
+  } finally {
+    loadingChapters.value = false;
+  }
+};
+
+
+// 日期格式化函数
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (error) {
+    return '-';
+  }
+};
+
+// 视频状态排序方法
+const sortVideoStatus = (a, b) => {
+  const statusA = a.chaUrl ? 1 : 0; // 已上传为1，未上传为0
+  const statusB = b.chaUrl ? 1 : 0;
+  return statusA - statusB;
+};
 
 // 课程选择变化
 const handleCourseChange = () => {
   if (!selectedCourseId.value) {
-    // 如果清空了选择，则清空章节列表和课程信息
-    chapterList.value = [];
+    // 如果清空了选择，则显示所有章节
     courseInfo.value = {};
-    // ElMessage.warning('请选择课程'); // 移除或修改提示，因为允许清空
+    fetchAllChapters();
     router.replace(`/course/chapter`); // 清空时，URL也应对应变化
     return;
   }
@@ -439,59 +527,36 @@ const handleBack = () => {
 
 onMounted(() => {
   loadingCourses.value = true;
-  fetchCourseList().then(async () => { // 将回调函数标记为 async
+  fetchCourseList().then(async () => {
     loadingCourses.value = false;
-    // console.log('onMounted: courseOptions after fetch:', JSON.parse(JSON.stringify(courseOptions.value)));
 
-    const courseIdFromRoute = route.params.id; // 从路由获取课程ID
-    // console.log('onMounted: courseIdFromRoute from route.params.id:', courseIdFromRoute);
+    const courseIdFromRoute = route.params.id;
 
     if (courseIdFromRoute) {
-      const targetCourseIdStr = String(courseIdFromRoute); // 统一将路由参数ID转为字符串
-
-      // 查找 courseOptions 中是否存在这个ID，并确保比较时类型一致
+      const targetCourseIdStr = String(courseIdFromRoute);
       const courseExistsInOptions = courseOptions.value.find(
         course => String(course.id) === targetCourseIdStr
       );
 
-      // console.log('onMounted: courseExistsInOptions:', courseExistsInOptions);
-
       if (courseExistsInOptions) {
-        // selectedCourseId.value = targetCourseIdStr; // 将 el-select 的 v-model 也设置为字符串ID
-        selectedCourseId.value = courseExistsInOptions.id; // 修改此行：使用 courseExistsInOptions.id 来保持类型一致
-
-        // 非常关键：等待Vue完成当前的DOM更新队列
-        // 这确保了 el-select 组件有时间去处理 v-model 的变化并基于新的 courseOptions 进行渲染
+        selectedCourseId.value = courseExistsInOptions.id;
         await nextTick();
-
-        // console.log('onMounted: selectedCourseId is now:', selectedCourseId.value);
-        // console.log('onMounted: Corresponding option label should be:', courseExistsInOptions.couName);
-
-        // 在 selectedCourseId 更新且 el-select 应该已经正确显示后，再调用 handleCourseChange
-        // handleCourseChange 内部会做 fetchCourseInfo 和 fetchChapterList
         handleCourseChange();
       } else if (courseOptions.value.length > 0) {
-        // 路由中的ID在当前课程列表中找不到，但列表不为空
         ElMessage.warning('链接中的课程ID无效或已不存在，请重新选择课程。');
-        router.replace('/course/chapter'); // 跳转到无特定课程的章节管理页
+        router.replace('/course/chapter');
       } else {
-        // 课程列表为空，且路由中有ID
         ElMessage.info('暂无课程可管理的课程，无法加载指定课程的章节。');
         router.replace('/course/chapter');
       }
     } else {
-      // 没有从路由获取到课程ID，正常初始化
-      chapterList.value = [];
-      courseInfo.value = {}; // 清空课程信息
-      if (courseOptions.value.length === 0 && !loadingCourses.value) {
-        ElMessage.info('暂无课程可管理的课程。');
+      // 没有从路由获取到课程ID，显示所有章节
+      courseInfo.value = {};
+      if (courseOptions.value.length > 0) {
+        fetchAllChapters();
+      } else {
+        chapterList.value = [];
       }
-      // 如果希望在没有路由参数时默认选中列表的第一个课程（如果列表不为空）
-      // else if (courseOptions.value.length > 0) {
-      //   selectedCourseId.value = String(courseOptions.value[0].id);
-      //   await nextTick();
-      //   handleCourseChange();
-      // }
     }
   }).catch(error => {
     loadingCourses.value = false;
@@ -499,6 +564,16 @@ onMounted(() => {
     ElMessage.error('加载课程列表失败，请检查网络或联系管理员。');
   });
 });
+// 获取默认排序配置
+const getDefaultSort = () => {
+  if (!selectedCourseId.value) {
+    // 未选择课程时：不设置表格默认排序，因为已经在数据层面排序了
+    return undefined;
+  } else {
+    // 选择课程时：章节序号升序
+    return { prop: 'chaIndex', order: 'ascending' };
+  }
+};
 </script>
 
 <style scoped>
@@ -506,13 +581,14 @@ onMounted(() => {
 .chapter-manage-container {
   padding: 24px;
   min-height: 100vh;
-  background-color: var(--el-bg-color-page);
+  /* 移除背景颜色 */
 }
 
 /* 简化的卡片样式 - 只有抬起效果 */
 .chapter-card {
   border-radius: 8px;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* 移除背景颜色 */
 }
 
 .chapter-card:hover {
@@ -569,11 +645,17 @@ onMounted(() => {
   color: var(--el-color-primary) !important;
 }
 
+/* 禁用状态的按钮样式 */
+:deep(.el-button:disabled) {
+  color: var(--el-text-color-disabled) !important;
+  cursor: not-allowed;
+}
+
 /* 操作区域简化样式 */
 .operation-container,
 .course-select,
 .chapter-list-container {
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
   border: 1px solid var(--el-border-color);
   border-radius: 8px;
   padding: 20px;
@@ -588,18 +670,13 @@ onMounted(() => {
   box-shadow: var(--el-box-shadow-light);
 }
 
-/* 表格样式使用Element默认 */
-:deep(.el-table) {
-  background-color: var(--el-bg-color);
-}
-
 :deep(.el-table th.el-table__cell) {
   background-color: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
 }
 
 :deep(.el-table td.el-table__cell) {
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
   color: var(--el-text-color-primary);
 }
 
@@ -613,7 +690,7 @@ onMounted(() => {
 }
 
 :deep(.el-input__wrapper) {
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
   border-color: var(--el-border-color);
 }
 
@@ -621,13 +698,8 @@ onMounted(() => {
   color: var(--el-text-color-primary);
 }
 
-/* 对话框样式 */
-:deep(.el-dialog) {
-  background-color: var(--el-bg-color);
-}
-
 :deep(.el-dialog__header) {
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
   border-bottom: 1px solid var(--el-border-color);
 }
 
@@ -636,19 +708,19 @@ onMounted(() => {
 }
 
 :deep(.el-dialog__body) {
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
   color: var(--el-text-color-primary);
 }
 
 /* 下拉菜单 */
 :deep(.el-select-dropdown) {
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
   border-color: var(--el-border-color);
 }
 
 :deep(.el-select-dropdown__item) {
   color: var(--el-text-color-primary);
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
 }
 
 :deep(.el-select-dropdown__item:hover) {
@@ -663,7 +735,7 @@ onMounted(() => {
 /* 上传组件 */
 :deep(.el-upload) {
   border-color: var(--el-border-color);
-  background-color: var(--el-bg-color);
+  /* 移除背景颜色 */
 }
 
 :deep(.el-upload:hover) {
@@ -738,4 +810,32 @@ onMounted(() => {
     font-size: 20px;
   }
 }
+
+/* 新增样式：课程选择和操作按钮布局 */
+.course-select-and-operations {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.course-select-and-operations:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.course-select-form {
+  flex: 1;
+}
+
+.operation-buttons {
+  display: flex;
+  gap: 12px;
+  margin-left: 20px;
+}
+
 </style>

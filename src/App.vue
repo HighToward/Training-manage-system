@@ -20,12 +20,14 @@
         </div>
         <el-menu
           :default-active="activeMenu"
+          :default-openeds="defaultOpeneds"
           class="el-menu-vertical"
           background-color="transparent"
           :text-color="isDarkMode ? '#e2e8f0' : '#606266'"
           :active-text-color="isDarkMode ? '#60a5fa' : '#3b82f6'"
           router
           :collapse="isCollapsed"
+          unique-opened
         >
           <el-sub-menu index="course-management">
             <template #title>
@@ -33,7 +35,6 @@
               <span>课程管理</span>
             </template>
             <el-menu-item index="/course/list">课程列表</el-menu-item>
-            <el-menu-item index="/course/chapter">章节管理</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="class-main-management">
@@ -186,22 +187,75 @@ const handleChangePassword = () => {
   console.log('跳转到修改密码页，待实现');
 };
 
+// 路由到菜单的映射配置
+const routeMenuMap = {
+  // 课程管理模块
+  'CourseList': '/course/list',
+  'CourseDetail': 'course-management',
+  
+  // 班级管理模块
+  'ClassList': '/class/list',
+  'ClassStudents': 'class-main-management',
+  'ClassCourses': 'class-main-management',
+  
+  // 统计分析模块
+  'CourseStatistics': 'statistics-analysis',
+  
+  // 系统工具模块
+  'ApiTest': 'system-tools'
+};
+
+// 路径模式匹配配置
+const pathPatterns = [
+  { pattern: /^\/course\/detail\/\d+$/, menu: 'course-management' },
+  { pattern: /^\/class\/students\/\d+$/, menu: 'class-main-management' },
+  { pattern: /^\/class\/courses\/\d+$/, menu: 'class-main-management' },
+  { pattern: /^\/statistics\//, menu: 'statistics-analysis' }
+];
+
+// 当前激活的菜单项
 const activeMenu = computed(() => {
   const path = route.path;
   const name = route.name;
   
-  if (name === 'CourseList' || name === 'CourseCreate' || name === 'CourseEdit') {
+  // 直接返回具体的菜单项路径
+  if (name === 'CourseList' || name === 'CourseDetail' || path.startsWith('/course/')) {
     return '/course/list';
   }
-  if (path.startsWith('/course/chapter')) {
-    return '/course/chapter';
-  }
-  if (name === 'ClassList' || 
-      (name === 'ClassStudentManage' && path.startsWith('/class/students/')) || 
-      (name === 'ClassCourseManage' && path.startsWith('/class/courses/'))) {
+  if (name === 'ClassList' || name === 'ClassStudents' || name === 'ClassCourses' || path.startsWith('/class/')) {
     return '/class/list';
   }
+  if (path.startsWith('/statistics/')) {
+    return '/statistics/course';
+  }
+  if (name === 'ApiTest' || path === '/api-test') {
+    return '/api-test';
+  }
+  
   return path;
+});
+
+// 默认展开的子菜单
+const defaultOpeneds = computed(() => {
+  const path = route.path;
+  const name = route.name;
+  const openeds = [];
+  
+  // 根据当前路由决定哪些子菜单应该展开
+  if (name === 'CourseList' || name === 'CourseDetail' || path.startsWith('/course/')) {
+    openeds.push('course-management');
+  }
+  if (name === 'ClassList' || name === 'ClassStudents' || name === 'ClassCourses' || path.startsWith('/class/')) {
+    openeds.push('class-main-management');
+  }
+  if (path.startsWith('/statistics/')) {
+    openeds.push('statistics-analysis');
+  }
+  if (name === 'ApiTest' || path === '/api-test') {
+    openeds.push('system-tools');
+  }
+  
+  return openeds;
 });
 </script>
 
