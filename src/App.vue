@@ -27,7 +27,6 @@
           :active-text-color="isDarkMode ? '#60a5fa' : '#3b82f6'"
           router
           :collapse="isCollapsed"
-          unique-opened
         >
           <el-sub-menu index="course-management">
             <template #title>
