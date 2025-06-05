@@ -255,4 +255,68 @@ export const authApi = {
   // getCurrentUser: () => api.get('/auth/me'), // 如果需要获取当前用户信息接口
 };
 
+// 资讯相关API
+export const informationApi = {
+  // 获取资讯列表
+  getInformationList(params) {
+    return api.get('/information/list', { params });
+  },
+  // 获取资讯详情
+  getInformationById(id) {
+    return api.get(`/information/${id}`);
+  },
+  // 创建资讯
+  createInformation(data) {
+    return api.post('/information', data);
+  },
+  // 更新资讯
+  updateInformation(id, data) {
+    return api.put(`/information/${id}`, data);
+  },
+  // 删除资讯
+  deleteInformation(id) {
+    return api.delete(`/information/${id}`);
+  },
+  // 根据教师ID获取资讯
+  getInformationByTeacherId(teaId) {
+    return api.get(`/information/teacher/${teaId}`);
+  },
+  // 点赞资讯
+  likeInformation(infoId, stuId) {
+    return api.post(`/information/${infoId}/like/${stuId}`);
+  },
+  // 取消点赞资讯
+  unlikeInformation(infoId, stuId) {
+    return api.delete(`/information/${infoId}/like/${stuId}`);
+  },
+  // 收藏资讯
+  collectInformation(infoId, stuId) {
+    return api.post(`/information/${infoId}/collect/${stuId}`);
+  },
+  // 取消收藏资讯
+  uncollectInformation(infoId, stuId) {
+    return api.delete(`/information/${infoId}/collect/${stuId}`);
+  },
+  // 获取资讯评论
+  getCommentsByInfoId(infoId) {
+    return api.get(`/information/${infoId}/comments`);
+  },
+  // 创建评论
+  createComment(infoId, comment) {
+    return api.post(`/information/${infoId}/comments`, comment);
+  },
+  // 删除评论
+  deleteComment(commentId) {
+    return api.delete(`/information/comments/${commentId}`);
+  },
+  // 点赞评论
+  likeComment(commentId, stuId) {
+    return api.post(`/information/comments/${commentId}/like/${stuId}`);
+  },
+  // 取消点赞评论
+  unlikeComment(commentId, stuId) {
+    return api.delete(`/information/comments/${commentId}/like/${stuId}`);
+  }
+};
+
 export default api;

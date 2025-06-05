@@ -74,6 +74,26 @@ const routes = [
     }
   },
   {
+    path: '/information/list',
+    name: 'InformationList',
+    component: () => import('../views/information/InformationList.vue'),
+    meta: { 
+      title: '资讯列表',
+      parentMenu: 'information-management'
+    }
+  },
+  {
+    path: '/information/detail/:id',
+    name: 'InformationDetail',
+    component: () => import('../views/information/InformationDetail.vue'),
+    meta: { 
+      title: '资讯详情',
+      parentTitle: '资讯管理',
+      parentMenu: 'information-management'
+    },
+    props: true
+  },
+  {
     path: '/login',
     name: 'Login',
     component: Login,

@@ -44,6 +44,14 @@
             <el-menu-item index="/class/list">班级列表</el-menu-item>
           </el-sub-menu>
 
+          <el-sub-menu index="information-management">
+            <template #title>
+              <el-icon><Document /></el-icon>
+              <span>资讯管理</span>
+            </template>
+            <el-menu-item index="/information/list">资讯列表</el-menu-item>
+          </el-sub-menu>
+
           <el-sub-menu index="statistics-analysis">
             <template #title>
               <el-icon><DataAnalysis /></el-icon>
