@@ -161,11 +161,10 @@ router.beforeEach((to, from, next) => {
   } else {
     // 角色权限判断
     if (requiresAuth && isAuthenticated && userInfo) {
-      // 如果页面明确要求教师权限
-      if (to.meta.requiresTeacher && userInfo.role !== 1) {
-        console.warn('非教师用户尝试访问受保护页面');
-        // 重定向到无权限页面
-        next({ name: 'Login' });
+      if (to.meta.requiresTeacher && userInfo.role !== 0) {
+        console.warn('非教师用户尝试访问受保护页面，用户角色:', userInfo.role);
+        // 重定向到课程列表页面而不是登录页
+        next({ name: 'CourseList' });
         return;
       }
     }

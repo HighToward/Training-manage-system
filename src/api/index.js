@@ -323,17 +323,17 @@ export const informationApi = {
 export const userApi = {
   // 获取当前用户信息（包含教师信息）
   getCurrentUserInfo() {
-    return api.get('/user/profile');
+    return api.get('/teacher/current');  // 修改为后端实际路由
   },
   
   // 更新用户资料
   updateProfile(data) {
-    return api.put('/user/profile', data);
+    return api.put('/teacher/profile', data);  // 修改为后端实际路由
   },
   
   // 上传头像
   uploadAvatar(formData) {
-    return api.post('/user/avatar', formData, {
+    return api.post('/upload/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }

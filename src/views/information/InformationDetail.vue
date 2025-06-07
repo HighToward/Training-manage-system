@@ -10,7 +10,7 @@
         <div class="article-meta">
           <div class="meta-left">
             <div class="author-info">
-              <el-avatar :size="40" class="author-avatar">
+              <el-avatar :size="40" :src="informationDetail.teaPic" class="author-avatar">
                 <el-icon><User /></el-icon>
               </el-avatar>
               <div class="author-details">
@@ -23,6 +23,10 @@
             <el-button type="primary" @click="handleEdit" class="action-btn">
               <el-icon><Edit /></el-icon>
               编辑
+            </el-button>
+            <el-button type="danger" @click="handleDelete" class="action-btn">
+              <el-icon><Delete /></el-icon>
+              删除
             </el-button>
             <el-button @click="handleBack" class="action-btn">
               <el-icon><Back /></el-icon>
@@ -278,7 +282,14 @@ const getToken = () => {
 // 格式化日期
 const formatDate = (date) => {
   if (!date) return ''
-  return new Date(date).toLocaleString('zh-CN')
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  const seconds = String(d.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 // 获取资讯详情
@@ -309,6 +320,7 @@ const enrichInformationDetail = async () => {
         const teacher = teachers.find(t => t.id === informationDetail.value.teaId)
         if (teacher) {
           informationDetail.value.teaName = teacher.teaName
+          informationDetail.value.teaPic = teacher.pic  // 添加头像信息
         }
       }
     }
@@ -418,6 +430,30 @@ const handleReply = (comment) => {
 // 检查是否可以删除评论
 const canDeleteComment = (comment) => {
   return comment.userId === currentUserId.value
+}
+
+// 删除资讯
+const handleDelete = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除资讯 "${informationDetail.value.infoTitle}" 吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    await informationApi.deleteInformation(route.params.id)
+    ElMessage.success('删除成功')
+    router.push('/information')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除资讯失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
 }
 
 // 返回列表

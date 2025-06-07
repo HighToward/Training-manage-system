@@ -84,11 +84,15 @@
             </div>
             
             <div class="info-meta">
-              <div class="meta-item">
-                <el-icon><User /></el-icon>
-                <span>{{ item.teaName || '未知作者' }}</span>
+              <!-- 作者信息行 -->
+              <div class="author-info">
+                <el-avatar :size="36" :src="item.teaPic" class="author-avatar">
+                  <el-icon><User /></el-icon>
+                </el-avatar>
+                <span class="author-name">{{ item.teaName }}</span>
               </div>
-              <div class="meta-item">
+              <!-- 日期信息行 - 独立左对齐 -->
+              <div class="date-info">
                 <el-icon><Calendar /></el-icon>
                 <span>{{ formatDate(item.createTime) }}</span>
               </div>
@@ -102,6 +106,10 @@
               <el-button type="primary" plain @click="handleEdit(item)" class="action-btn">
                 <el-icon><Edit /></el-icon>
                 编辑
+              </el-button>
+              <el-button type="danger" plain @click="handleDelete(item)" class="action-btn danger">
+                <el-icon><Delete /></el-icon>
+                删除
               </el-button>
             </div>
           </div>
@@ -206,7 +214,7 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, User, Calendar, Picture } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, User, Calendar, Picture } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { informationApi, teacherApi } from '@/api'
 import '@wangeditor/editor/dist/css/style.css'
@@ -296,7 +304,7 @@ const fetchInformationList = async () => {
   }
 }
 
-// 补充资讯列表信息（教师名称等）
+// 补充资讯列表信息（教师名称和头像）
 const enrichInformationList = async () => {
   try {
     const teachers = await teacherApi.getTeacherList()
@@ -306,6 +314,7 @@ const enrichInformationList = async () => {
           const teacher = teachers.find(t => t.id === info.teaId)
           if (teacher) {
             info.teaName = teacher.teaName
+            info.teaPic = teacher.pic  // 添加头像信息
           }
         }
       })
@@ -360,7 +369,15 @@ const handleCurrentChange = (val) => {
 // 格式化日期
 const formatDate = (date) => {
   if (!date) return ''
-  return new Date(date).toLocaleDateString('zh-CN')
+  const dateObj = new Date(date)
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  const hours = String(dateObj.getHours()).padStart(2, '0')
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0')
+  const seconds = String(dateObj.getSeconds()).padStart(2, '0')
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 // 截取内容
@@ -464,6 +481,31 @@ const handleEdit = async (row) => {
   await initEditor()
   if (editor) {
     editor.setHtml(row.infoMain || '')
+  }
+}
+
+// 删除资讯
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除资讯 "${row.infoTitle || '该资讯'}" 吗?`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await informationApi.deleteInformation(row.id)
+    ElMessage.success('删除成功')
+    await fetchInformationList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(`Error in handleDelete for information ID=${row.id}:`, error)
+      if (error.response && error.response.data && error.response.data.message) {
+        ElMessage.error(`删除失败: ${error.response.data.message}`)
+      } else if (error.message) {
+        ElMessage.error(`删除失败: ${error.message}`)
+      } else {
+        ElMessage.error('删除失败: 未知错误')
+      }
+    }
   }
 }
 
@@ -697,8 +739,46 @@ onMounted(() => {
 
 .info-meta {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.author-avatar {
+  flex-shrink: 0;
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.author-avatar .el-avatar {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+.author-name {
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  font-size: 14px;
+}
+
+.date-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  /* 移除 margin-left，让日期左对齐到卡片边缘 */
+}
+
+.date-info .el-icon {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
 }
 
 .meta-item {

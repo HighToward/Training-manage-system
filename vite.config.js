@@ -22,7 +22,19 @@ export default defineConfig({
       '/uploads': {
         target: 'http://localhost:8080', // 后端地址
         changeOrigin: true,
-        // rewrite: (path) => path.replace(/^\/uploads/, '/uploads') // 可选，如果后端路径与前端一致则不需要rewrite
+        secure: false,
+        logLevel: 'debug', // 添加调试日志
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        }
       }
     }
   }

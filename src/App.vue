@@ -127,128 +127,84 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Expand, Fold, Moon, Sunny } from '@element-plus/icons-vue';
-import { userApi } from '@/api';
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessageBox, ElMessage } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import { Sunny, Moon } from '@element-plus/icons-vue'
 
-const router = useRouter();
-const route = useRoute();
+
+const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
 
 // 侧边栏折叠状态
-const isCollapsed = ref(false);
+const isCollapsed = ref(false)
 
 // 主题状态
-const isDarkMode = ref(false);
+const isDarkMode = ref(false)
 
-// 用户信息
-const userInfo = ref(null);
-
-// 获取当前用户信息
-const fetchUserInfo = async () => {
-  try {
-    const response = await userApi.getCurrentUserInfo();
-    userInfo.value = response;
-    // 更新本地存储
-    localStorage.setItem('userInfo', JSON.stringify(response));
-  } catch (error) {
-    console.error('获取用户信息失败:', error);
-  }
-};
+// 从store获取用户信息
+const userInfo = computed(() => userStore.userInfo)
 
 // 切换侧边栏折叠状态
 const toggleCollapse = () => {
-  isCollapsed.value = !isCollapsed.value;
-};
+  isCollapsed.value = !isCollapsed.value
+}
 
 // 切换主题
 const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value;
-  localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light');
-};
+  isDarkMode.value = !isDarkMode.value
+  localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light')
+}
 
-// 获取父级路由路径的方法
-const getParentRoute = (parentTitle) => {
-  // 根据父级标题返回对应的路由路径
-  const parentRouteMap = {
-    '课程列表': '/course/list',
-    '班级列表': '/class/list',
-    '资讯列表': '/information/list',
-    '统计分析': '/statistics/course'
-  };
-  
-  return { path: parentRouteMap[parentTitle] || '/' };
-};
-
-// 初始化主题
-onMounted(() => {
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme) {
-    isDarkMode.value = savedTheme === 'dark';
-  } else {
-    // 检测系统主题偏好
-    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-  
-  // 获取用户信息
-  const savedUserInfo = localStorage.getItem('userInfo');
-  if (savedUserInfo) {
-    userInfo.value = JSON.parse(savedUserInfo);
-  }
-  fetchUserInfo();
-});
-
-// 监听主题变化，更新CSS变量
-watch(isDarkMode, (newVal) => {
-  document.documentElement.setAttribute('data-theme', newVal ? 'dark' : 'light');
-}, { immediate: true });
-
-const isLoginPage = computed(() => route.name === 'Login');
-
+// 处理登出
 const handleLogout = () => {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    // 清除本地存储
-    localStorage.removeItem('token');
-    localStorage.removeItem('tokenExpiry');
-    localStorage.removeItem('userInfo');
-    
-    ElMessage.success('已退出登录');
-    router.push('/login');
+    userStore.logout()
+    ElMessage.success('已退出登录')
+    router.push('/login')
   }).catch(() => {
     // 用户取消退出
-  });
-};
+  })
+}
 
+// 跳转到个人信息页
 const handleUserProfile = () => {
-  router.push('/profile');
-};
+  router.push('/profile')
+}
 
+// 修改密码
 const handleChangePassword = () => {
-  console.log('跳转到修改密码页，待实现');
-};
+  console.log('跳转到修改密码页，待实现')
+}
+
+// 获取父级路由路径的方法
+const getParentRoute = (parentTitle) => {
+  const parentRouteMap = {
+    '课程列表': '/course/list',
+    '班级列表': '/class/list',
+    '资讯列表': '/information/list',
+    '统计分析': '/statistics/course'
+  }
+  
+  return { path: parentRouteMap[parentTitle] || '/' }
+}
 
 // 路由到菜单的映射配置
 const routeMenuMap = {
-  // 课程管理模块
   'CourseList': '/course/list',
   'CourseDetail': 'course-management',
-  
-  // 班级管理模块
   'ClassList': '/class/list',
   'ClassStudents': 'class-main-management',
   'ClassCourses': 'class-main-management',
-  
-  // 统计分析模块
   'CourseStatistics': 'statistics-analysis',
-  
-  // 系统工具模块
   'ApiTest': 'system-tools'
-};
+}
 
 // 路径模式匹配配置
 const pathPatterns = [
@@ -256,52 +212,70 @@ const pathPatterns = [
   { pattern: /^\/class\/students\/\d+$/, menu: 'class-main-management' },
   { pattern: /^\/class\/courses\/\d+$/, menu: 'class-main-management' },
   { pattern: /^\/statistics\//, menu: 'statistics-analysis' }
-];
+]
 
 // 当前激活的菜单项
 const activeMenu = computed(() => {
-  const path = route.path;
-  const name = route.name;
+  const path = route.path
+  const name = route.name
   
-  // 直接返回具体的菜单项路径
   if (name === 'CourseList' || name === 'CourseDetail' || path.startsWith('/course/')) {
-    return '/course/list';
+    return '/course/list'
   }
   if (name === 'ClassList' || name === 'ClassStudents' || name === 'ClassCourses' || path.startsWith('/class/')) {
-    return '/class/list';
+    return '/class/list'
   }
   if (path.startsWith('/statistics/')) {
-    return '/statistics/course';
+    return '/statistics/course'
   }
   if (name === 'ApiTest' || path === '/api-test') {
-    return '/api-test';
+    return '/api-test'
   }
   
-  return path;
-});
+  return path
+})
 
 // 默认展开的子菜单
 const defaultOpeneds = computed(() => {
-  const path = route.path;
-  const name = route.name;
-  const openeds = [];
+  const path = route.path
+  const name = route.name
+  const openeds = []
   
-  // 根据当前路由决定哪些子菜单应该展开
   if (name === 'CourseList' || name === 'CourseDetail' || path.startsWith('/course/')) {
-    openeds.push('course-management');
+    openeds.push('course-management')
   }
   if (name === 'ClassList' || name === 'ClassStudents' || name === 'ClassCourses' || path.startsWith('/class/')) {
-    openeds.push('class-main-management');
+    openeds.push('class-main-management')
   }
   if (path.startsWith('/statistics/')) {
-    openeds.push('statistics-analysis');
+    openeds.push('statistics-analysis')
   }
   if (name === 'ApiTest' || path === '/api-test') {
-    openeds.push('system-tools');
+    openeds.push('system-tools')
   }
   
-  return openeds;
-});
+  return openeds
+})
+
+const isLoginPage = computed(() => route.name === 'Login')
+
+// 初始化
+onMounted(() => {
+  const savedTheme = localStorage.getItem('theme')
+  if (savedTheme) {
+    isDarkMode.value = savedTheme === 'dark'
+  } else {
+    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+  
+  // 初始化用户状态
+  userStore.initializeUser()
+})
+
+// 监听主题变化
+watch(isDarkMode, (newVal) => {
+  document.documentElement.setAttribute('data-theme', newVal ? 'dark' : 'light')
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -545,9 +519,8 @@ const defaultOpeneds = computed(() => {
 }
 
 .theme-toggle-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 36px !important;
+  height: 36px !important;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

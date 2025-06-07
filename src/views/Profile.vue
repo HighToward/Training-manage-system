@@ -24,23 +24,16 @@
                   icon="UserFilled"
                   class="profile-avatar"
                 />
-                <div class="avatar-overlay" @click="handleAvatarClick">
+                <div class="avatar-overlay" @click="avatarDialogVisible = true">
                   <el-icon><Camera /></el-icon>
                   <span>更换头像</span>
                 </div>
               </div>
-              <input 
-                ref="avatarInputRef" 
-                type="file" 
-                accept="image/*" 
-                style="display: none" 
-                @change="handleAvatarChange"
-              />
             </div>
           </el-col>
           
           <el-col :span="16">
-            <el-form-item label="用户名" prop="username">
+            <el-form-item label="账号" prop="username">
               <el-input v-model="profileForm.username" disabled />
             </el-form-item>
             
@@ -52,33 +45,81 @@
               <el-input v-model="profileForm.coursNum" disabled />
             </el-form-item>
             
-            <el-form-item label="创建时间">
-              <el-input v-model="formattedCreateTime" disabled />
-            </el-form-item>
-            
             <el-form-item>
               <el-button type="primary" @click="handleSave" :loading="saving">
-                保存修改
+                保存
               </el-button>
-              <el-button @click="handleReset">重置</el-button>
+              <el-button @click="handleCancel">取消</el-button>
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
     </el-card>
+
+    <!-- 头像上传模态框 -->
+    <el-dialog 
+      v-model="avatarDialogVisible"
+      title="上传头像"
+      width="500px"
+    >
+      <div class="avatar-upload-content">
+        <div class="current-avatar">
+          <el-avatar 
+            :size="120" 
+            :src="profileForm.pic" 
+            icon="UserFilled"
+          />
+          <p>当前头像</p>
+        </div>
+        
+        <el-upload
+          ref="uploadRef"
+          class="avatar-uploader"
+          :action="uploadUrl"
+          :headers="uploadHeaders"
+          :show-file-list="false"
+          :before-upload="beforeAvatarUpload"
+          :on-success="handleAvatarSuccess"
+          :on-error="handleAvatarError"
+          accept="image/*"
+        >
+          <el-button type="primary" :loading="uploading">
+            {{ uploading ? '上传中...' : '选择新头像' }}
+          </el-button>
+        </el-upload>
+        
+        <div class="upload-tips">
+          <p>• 支持 JPG、PNG 格式</p>
+          <p>• 文件大小不超过 2MB</p>
+          <p>• 建议尺寸 200x200 像素</p>
+        </div>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="avatarDialogVisible = false">取消</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Camera } from '@element-plus/icons-vue';
-import { userApi } from '@/api';
+import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Camera, UserFilled } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
 
-const profileFormRef = ref(null);
-const avatarInputRef = ref(null);
-const saving = ref(false);
+const userStore = useUserStore()
 
+// 响应式数据
+const profileFormRef = ref(null)
+const avatarDialogVisible = ref(false)
+const uploading = ref(false)
+const saving = ref(false)
+const uploadRef = ref()
+
+// 表单数据
 const profileForm = reactive({
   id: null,
   username: '',
@@ -86,103 +127,117 @@ const profileForm = reactive({
   pic: '',
   coursNum: 0,
   createTime: ''
-});
+})
 
-const originalForm = ref({});
+const originalForm = ref({})
 
+// 表单验证规则
 const profileRules = {
   teaName: [
     { required: true, message: '请输入教师姓名', trigger: 'blur' },
     { min: 2, max: 20, message: '教师姓名长度在 2 到 20 个字符', trigger: 'blur' }
   ]
-};
+}
 
-const formattedCreateTime = computed(() => {
-  if (!profileForm.createTime) return '';
-  return new Date(profileForm.createTime).toLocaleString('zh-CN');
-});
+// 上传配置
+const uploadUrl = computed(() => '/api/upload/avatar')
+const uploadHeaders = computed(() => ({
+  'Authorization': `Bearer ${userStore.token}`
+}))
 
 // 获取用户信息
 const fetchUserInfo = async () => {
   try {
-    const response = await userApi.getCurrentUserInfo();
-    Object.assign(profileForm, response);
-    originalForm.value = { ...response };
+    const response = await userStore.fetchUserInfo()
+    Object.assign(profileForm, response)
+    originalForm.value = { ...response }
   } catch (error) {
-    ElMessage.error('获取用户信息失败');
+    console.error('获取用户信息失败:', error)
+    ElMessage.error('获取用户信息失败')
   }
-};
-
-// 处理头像点击
-const handleAvatarClick = () => {
-  avatarInputRef.value?.click();
-};
-
-// 处理头像文件选择
-const handleAvatarChange = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  // 验证文件类型
-  if (!file.type.startsWith('image/')) {
-    ElMessage.error('请选择图片文件');
-    return;
-  }
-  
-  // 验证文件大小 (2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    ElMessage.error('图片大小不能超过2MB');
-    return;
-  }
-  
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await userApi.uploadAvatar(formData);
-    profileForm.pic = response.url;
-    ElMessage.success('头像上传成功');
-  } catch (error) {
-    ElMessage.error('头像上传失败');
-  }
-};
+}
 
 // 保存修改
 const handleSave = async () => {
-  if (!profileFormRef.value) return;
+  if (!profileFormRef.value) return
   
   try {
-    await profileFormRef.value.validate();
-    saving.value = true;
+    await profileFormRef.value.validate()
+    saving.value = true
     
-    await userApi.updateProfile({
+    await userStore.updateProfile({
       teaName: profileForm.teaName,
       pic: profileForm.pic
-    });
+    })
     
-    // 更新本地存储
-    const updatedUserInfo = { ...profileForm };
-    localStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
+    ElMessage.success('保存成功')
     
-    ElMessage.success('保存成功');
-    originalForm.value = { ...profileForm };
+    const updatedUserInfo = userStore.userInfo
+    Object.assign(profileForm, updatedUserInfo)
+    originalForm.value = { ...updatedUserInfo }
+    
   } catch (error) {
+    console.error('保存失败:', error)
     if (error.message) {
-      ElMessage.error(error.message);
+      ElMessage.error(error.message)
+    } else {
+      ElMessage.error('保存失败，请重试')
     }
   } finally {
-    saving.value = false;
+    saving.value = false
   }
-};
+}
 
-// 重置表单
-const handleReset = () => {
-  Object.assign(profileForm, originalForm.value);
-};
+// 取消修改
+const handleCancel = () => {
+  Object.assign(profileForm, originalForm.value)
+  ElMessage.info('已取消修改')
+}
 
+// 上传前验证
+const beforeAvatarUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt2M = file.size / 1024 / 1024 < 2
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件！')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB！')
+    return false
+  }
+  
+  uploading.value = true
+  return true
+}
+
+// 上传成功回调
+const handleAvatarSuccess = (response) => {
+  uploading.value = false
+  
+  if (response.code === 200) {
+    profileForm.pic = response.data.url
+    userStore.userInfo.pic = response.data.url
+    
+    ElMessage.success('头像上传成功！')
+    avatarDialogVisible.value = false
+  } else {
+    ElMessage.error(response.message || '上传失败')
+  }
+}
+
+// 上传失败回调
+const handleAvatarError = (error) => {
+  uploading.value = false
+  console.error('头像上传失败:', error)
+  ElMessage.error('头像上传失败，请重试')
+}
+
+// 组件挂载时获取用户信息
 onMounted(() => {
-  fetchUserInfo();
-});
+  fetchUserInfo()
+})
 </script>
 
 <style scoped>
@@ -261,18 +316,37 @@ onMounted(() => {
   margin-top: 4px;
 }
 
-/* 黑夜模式适配 */
-[data-theme="dark"] .profile-card {
-  background: var(--card-bg);
-  border-color: var(--border-color);
+.avatar-upload-content {
+  text-align: center;
+  padding: 20px;
 }
 
-[data-theme="dark"] .card-header h3 {
-  color: var(--text-color);
+.current-avatar {
+  margin-bottom: 30px;
 }
 
-[data-theme="dark"] .profile-avatar {
-  border-color: var(--border-color);
+.current-avatar p {
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+.avatar-uploader {
+  margin-bottom: 20px;
+}
+
+.upload-tips {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  text-align: left;
+}
+
+.upload-tips p {
+  margin: 5px 0;
+  color: #909399;
+  font-size: 12px;
 }
 
 /* 响应式设计 */

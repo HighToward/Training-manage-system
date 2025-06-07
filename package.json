@@ -12,8 +12,11 @@
     "@element-plus/icons-vue": "^2.1.0",
     "@wangeditor/editor": "^5.1.23",
     "axios": "^1.4.0",
+    "cropperjs": "^1.6.1",
     "element-plus": "^2.3.9",
+    "pinia": "^3.0.3",
     "vue": "^3.3.4",
+    "vue-picture-cropper": "^0.7.0",
     "vue-router": "^4.2.4"
   },
   "devDependencies": {

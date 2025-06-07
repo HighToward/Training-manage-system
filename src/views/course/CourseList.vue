@@ -92,7 +92,9 @@
             
             <div class="course-meta">
               <div class="meta-item">
-                <el-icon><User /></el-icon>
+                <el-avatar :size="24" :src="item.teaPic" class="teacher-avatar">
+                  <el-icon><User /></el-icon>
+                </el-avatar>
                 <span>{{ item.teaName }}</span>
               </div>
               <div class="meta-item">
@@ -360,6 +362,8 @@ const fetchCourseList = async () => {
     const response = await courseApi.getCourseList(queryParams)
     if (response && response.list && typeof response.total === 'number' && typeof response.pages === 'number') {
       courseList.value = response.list
+      // 补充教师头像信息
+      await enrichCourseList()
       total.value = response.total
       pages.value = response.pages
     } else {
@@ -377,6 +381,25 @@ const fetchCourseList = async () => {
     pages.value = 0
   } finally {
     loading.value = false
+  }
+}
+
+// 补充课程列表信息（教师头像）
+const enrichCourseList = async () => {
+  try {
+    const teachers = await teacherApi.getTeacherList()
+    if (teachers && Array.isArray(teachers)) {
+      courseList.value.forEach(course => {
+        if (course.teaId) {
+          const teacher = teachers.find(t => t.id === course.teaId)
+          if (teacher) {
+            course.teaPic = teacher.pic  // 添加头像信息
+          }
+        }
+      })
+    }
+  } catch (error) {
+    console.error('补充课程列表信息失败:', error)
   }
 }
 
@@ -620,8 +643,15 @@ const handleImageError = () => {
 // 格式化日期
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  const date = new Date(dateStr)
-  return date.toLocaleString()
+  const dateObj = new Date(dateStr)
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  const hours = String(dateObj.getHours()).padStart(2, '0')
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0')
+  const seconds = String(dateObj.getSeconds()).padStart(2, '0')
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 onMounted(() => {
@@ -788,10 +818,15 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.teacher-avatar {
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   color: #606266;
   font-size: 14px;
 }

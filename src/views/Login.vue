@@ -41,74 +41,75 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import { authApi } from '@/api';
-import { Moon, Sunny } from '@element-plus/icons-vue';
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Sunny, Moon } from '@element-plus/icons-vue'
+import { useUserStore } from '@/stores/user'
 
-const router = useRouter();
-const loginFormRef = ref(null);
+
+const router = useRouter()
+const userStore = useUserStore()
+
+const loginFormRef = ref(null)
 const loginForm = reactive({
   username: '',
-  password: '',
-});
-const loading = ref(false);
+  password: ''
+})
+const loading = ref(false)
 
 // 主题状态
-const isDarkMode = ref(false);
+const isDarkMode = ref(false)
 
 // 切换主题
 const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value;
-  localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light');
-};
+  isDarkMode.value = !isDarkMode.value
+  localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light')
+}
+
+// 登录规则
+const loginRules = {
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+}
+
+// 处理登录
+const handleLogin = async () => {
+  if (!loginFormRef.value) return
+  
+  loading.value = true
+  
+  try {
+    // 使用 Pinia store 的登录方法
+    await userStore.login({
+      username: loginForm.username,
+      password: loginForm.password
+    })
+    
+    ElMessage.success('登录成功')
+    router.push('/course/list')
+    
+  } catch (error) {
+    ElMessage.error(error.message || '登录失败')
+  } finally {
+    loading.value = false
+  }
+}
 
 // 初始化主题
 onMounted(() => {
-  const savedTheme = localStorage.getItem('theme');
+  const savedTheme = localStorage.getItem('theme')
   if (savedTheme) {
-    isDarkMode.value = savedTheme === 'dark';
+    isDarkMode.value = savedTheme === 'dark'
   } else {
-    // 检测系统主题偏好
-    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches
   }
-});
+})
 
-// 监听主题变化，更新CSS变量
+// 监听主题变化
 watch(isDarkMode, (newVal) => {
-  document.documentElement.setAttribute('data-theme', newVal ? 'dark' : 'light');
-}, { immediate: true });
-
-const loginRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-};
-
-const handleLogin = async () => {
-  if (!loginFormRef.value) return;
-  await loginFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true;
-      try {
-        const response = await authApi.login(loginForm);
-        
-        // 设置token过期时间为30分钟（30 * 60 * 1000毫秒）
-        const expiryTime = new Date().getTime() + (30 * 60 * 1000);
-        
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('tokenExpiry', expiryTime.toString());
-        localStorage.setItem('userInfo', JSON.stringify(response.userInfo));
-        
-        ElMessage.success('登录成功');
-        router.push('/');
-      } catch (error) {
-        ElMessage.error(error.message || '登录失败，请检查用户名和密码');
-      }
-      loading.value = false;
-    }
-  });
-};
+  document.documentElement.setAttribute('data-theme', newVal ? 'dark' : 'light')
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -143,18 +144,17 @@ const handleLogin = async () => {
   position: relative;
 }
 
-/* 主题切换按钮 - 左上角 */
+/* 主题切换按钮 - 右上角 */
 .theme-toggle-container {
   position: absolute;
   top: 20px;
-  left: 20px;
+  right: 20px;
   z-index: 1000;
 }
 
 .theme-toggle-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 40px !important;
+  height: 40px !important;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
