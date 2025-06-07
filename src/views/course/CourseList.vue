@@ -638,13 +638,18 @@ onMounted(() => {
 
 /* 搜索区域样式 */
 .search-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .search-card {
-  border-radius: 8px;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: var(--el-box-shadow-light);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow);
 }
 
 .search-header {
@@ -654,14 +659,14 @@ onMounted(() => {
 .search-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
 .title-icon {
-  color: #409eff;
+  margin-right: 8px;
+  color: var(--el-color-primary);
 }
 
 .search-form {

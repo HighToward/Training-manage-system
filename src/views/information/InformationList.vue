@@ -501,8 +501,7 @@ onMounted(() => {
 <style scoped>
 /* 复用课程列表的样式，并做适当调整 */
 .information-list-container {
-  padding: 20px;
-  background-color: var(--el-bg-color-page);
+  padding: 24px;
   min-height: calc(100vh - 60px);
 }
 
@@ -541,12 +540,13 @@ onMounted(() => {
 .search-form {
   display: flex;
   gap: 16px;
-  align-items: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
 }
 
 .search-input {
   flex: 1;
-  max-width: 400px;
+  min-width: 300px;
 }
 
 .search-actions {
@@ -555,7 +555,7 @@ onMounted(() => {
 }
 
 .search-btn, .reset-btn {
-  min-width: 100px;
+  border-radius: 4px;
 }
 
 .action-section {
@@ -566,10 +566,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
+  padding: 0 8px;
 }
 
 .page-title h2 {
@@ -698,17 +695,16 @@ onMounted(() => {
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
+  padding: 32px 0;
 }
 
 .modern-pagination {
-  --el-pagination-font-size: 14px;
-  --el-pagination-bg-color: transparent;
-  --el-pagination-text-color: var(--el-text-color-regular);
-  --el-pagination-border-radius: 6px;
+  background: var(--card-bg);
+  padding: 20px 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .information-dialog {
@@ -750,6 +746,39 @@ onMounted(() => {
 
 .dialog-footer {
   text-align: right;
+}
+
+/* 搜索区域标题样式 - 支持黑夜模式 */
+.search-title span,
+.page-title h2,
+.dialog-title-text { /* 假设弹窗标题使用此class */
+  color: var(--text-color);
+  transition: color 0.3s ease;
+}
+
+/* 卡片头部标题 - 支持黑夜模式 */
+:deep(.el-card__header .card-header h3),
+:deep(.el-card__header .clearfix span) { /* 适用于ClassCourseManage等页面的卡片标题 */
+  color: var(--text-color) !important;
+  transition: color 0.3s ease;
+}
+
+/* 新增或修改：确保列表中的主要标题在黑夜模式下为浅色 */
+[data-theme="dark"] .info-title {
+  color: #e2e8f0 !important; /* 或者 var(--text-color) */
+}
+
+[data-theme="dark"] .meta-item {
+  color: #a0aec0; /* 调整元信息颜色以在深色背景下更清晰 */
+}
+
+[data-theme="dark"] .meta-item .el-icon {
+  color: #718096;
+}
+
+/* Element Plus 表格表头文字颜色 - 黑夜模式 */
+:deep([data-theme="dark"] .el-table th.el-table__cell > .cell) {
+  color: #e2e8f0 !important;
 }
 
 /* 响应式设计 */

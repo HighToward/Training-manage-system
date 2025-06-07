@@ -562,8 +562,7 @@ onUnmounted(() => {
 
 <style scoped>
 .information-detail-container {
-  padding: 20px;
-  background-color: var(--el-bg-color-page);
+  padding: 24px;
   min-height: calc(100vh - 60px);
 }
 
