@@ -94,7 +94,10 @@
             />
             <el-breadcrumb separator="/">
               <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-              <el-breadcrumb-item v-if="$route.meta.parentTitle && $route.meta.parentTitle !== $route.meta.title">
+              <el-breadcrumb-item 
+                v-if="$route.meta.parentTitle && $route.meta.parentTitle !== $route.meta.title"
+                :to="getParentRoute($route.meta.parentTitle)"
+              >
                 {{ $route.meta.parentTitle }}
               </el-breadcrumb-item>
               <el-breadcrumb-item v-if="$route.meta.title">{{ $route.meta.title }}</el-breadcrumb-item>
@@ -103,13 +106,12 @@
           <div class="header-right">
             <el-dropdown>
               <span class="user-info">
-                <el-avatar :size="32" icon="UserFilled" />
-                <span class="username">管理员</span>
+                <el-avatar :size="32" :src="userInfo?.pic" icon="UserFilled" />
+                <span class="username">{{ userInfo?.teaName || '教师' }}</span>
               </span>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item @click="handleUserProfile">个人信息</el-dropdown-item>
-                  <el-dropdown-item @click="handleChangePassword">修改密码</el-dropdown-item>
                   <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -129,6 +131,7 @@ import { computed, ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Expand, Fold, Moon, Sunny } from '@element-plus/icons-vue';
+import { userApi } from '@/api';
 
 const router = useRouter();
 const route = useRoute();
@@ -138,6 +141,21 @@ const isCollapsed = ref(false);
 
 // 主题状态
 const isDarkMode = ref(false);
+
+// 用户信息
+const userInfo = ref(null);
+
+// 获取当前用户信息
+const fetchUserInfo = async () => {
+  try {
+    const response = await userApi.getCurrentUserInfo();
+    userInfo.value = response;
+    // 更新本地存储
+    localStorage.setItem('userInfo', JSON.stringify(response));
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+  }
+};
 
 // 切换侧边栏折叠状态
 const toggleCollapse = () => {
@@ -150,6 +168,19 @@ const toggleTheme = () => {
   localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light');
 };
 
+// 获取父级路由路径的方法
+const getParentRoute = (parentTitle) => {
+  // 根据父级标题返回对应的路由路径
+  const parentRouteMap = {
+    '课程列表': '/course/list',
+    '班级列表': '/class/list',
+    '资讯列表': '/information/list',
+    '统计分析': '/statistics/course'
+  };
+  
+  return { path: parentRouteMap[parentTitle] || '/' };
+};
+
 // 初始化主题
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme');
@@ -159,6 +190,13 @@ onMounted(() => {
     // 检测系统主题偏好
     isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
+  
+  // 获取用户信息
+  const savedUserInfo = localStorage.getItem('userInfo');
+  if (savedUserInfo) {
+    userInfo.value = JSON.parse(savedUserInfo);
+  }
+  fetchUserInfo();
 });
 
 // 监听主题变化，更新CSS变量
@@ -187,7 +225,7 @@ const handleLogout = () => {
 };
 
 const handleUserProfile = () => {
-  console.log('跳转到个人信息页，待实现');
+  router.push('/profile');
 };
 
 const handleChangePassword = () => {
@@ -352,21 +390,18 @@ const defaultOpeneds = computed(() => {
   align-items: center;
   justify-content: center;
   padding: 20px 10px 15px 10px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e4e7ed;
+  margin: 50px 0;
   position: relative;
 }
 
 /* 黑夜模式logo容器 */
 .dark-theme .logo-container {
-  background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo-container::after {
   content: '';
   position: absolute;
-  bottom: 0;
+  top: 130px;
   left: 0;
   right: 0;
   height: 1px;
@@ -505,7 +540,7 @@ const defaultOpeneds = computed(() => {
 .theme-toggle-container {
   position: absolute;
   bottom: 20px;
-  left: 20px;
+  left: 14px;
   z-index: 1000;
 }
 

@@ -1,87 +1,86 @@
 <template>
   <div class="information-detail-container">
-    <el-card class="detail-card" v-loading="loading">
-      <!-- 页面头部 -->
-      <template #header>
-        <div class="detail-header">
-          <h2 class="info-title">{{ informationDetail.infoTitle || '资讯详情' }}</h2>
-          <div class="header-actions">
-            <el-button type="primary" @click="handleEdit">
+    <!-- 文章主体卡片 -->
+    <el-card class="article-card" v-loading="loading">
+      <!-- 文章头部 -->
+      <div class="article-header">
+        <h1 class="article-title">{{ informationDetail.infoTitle }}</h1>
+        
+        <!-- 文章元信息 -->
+        <div class="article-meta">
+          <div class="meta-left">
+            <div class="author-info">
+              <el-avatar :size="40" class="author-avatar">
+                <el-icon><User /></el-icon>
+              </el-avatar>
+              <div class="author-details">
+                <span class="author-name">{{ informationDetail.teaName || '未知作者' }}</span>
+                <span class="publish-time">{{ formatDate(informationDetail.createTime) }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="meta-right">
+            <el-button type="primary" @click="handleEdit" class="action-btn">
               <el-icon><Edit /></el-icon>
               编辑
             </el-button>
-            <el-button @click="handleBack">
+            <el-button @click="handleBack" class="action-btn">
               <el-icon><Back /></el-icon>
-              返回资讯列表
+              返回
             </el-button>
           </div>
         </div>
-      </template>
+      </div>
 
-      <!-- 资讯详情内容 -->
-      <div class="detail-content">
-        <el-row :gutter="24">
-          <!-- 左侧信息 -->
-          <el-col :span="16">
-            <div class="info-details">
-              <div class="info-item">
-                <label>资讯作者：</label>
-                <span>{{ informationDetail.teaName || '未知作者' }}</span>
-              </div>
-              <div class="info-item">
-                <label>创建时间：</label>
-                <span>{{ formatDate(informationDetail.createTime) }}</span>
-              </div>
-              <div class="info-item full-width">
-                <label>资讯内容：</label>
-                <div class="content" v-html="informationDetail.infoMain"></div>
-              </div>
-            </div>
-          </el-col>
-          
-          <!-- 右侧封面图片 -->
-          <el-col :span="8">
-            <div class="info-cover">
-              <el-image
-                v-if="informationDetail.infoImage"
-                :src="informationDetail.infoImage"
-                :preview-src-list="[informationDetail.infoImage]"
-                fit="cover"
-                class="cover-image"
-              />
-              <div v-else class="no-cover">
-                <el-icon class="no-cover-icon"><Picture /></el-icon>
-                <span>暂无封面</span>
-              </div>
-            </div>
-          </el-col>
-        </el-row>
+      <!-- 封面图片 -->
+      <div class="article-cover" v-if="informationDetail.infoImage">
+        <el-image
+          :src="informationDetail.infoImage"
+          :preview-src-list="[informationDetail.infoImage]"
+          :preview-teleported="true"
+          :z-index="3000"
+          fit="cover"
+          class="cover-image"
+          hide-on-click-modal
+        />
+      </div>
+
+      <!-- 文章内容 -->
+      <div class="article-content">
+        <div class="content" v-html="informationDetail.infoMain"></div>
       </div>
     </el-card>
 
-    <!-- 评论区 -->
+    <!-- 评论区卡片 -->
     <el-card class="comments-card">
       <template #header>
         <div class="comments-header">
-          <h3>评论区</h3>
+          <h3 class="comments-title">
+            <el-icon class="title-icon"><ChatDotRound /></el-icon>
+            评论区
+          </h3>
           <span class="comment-count">{{ commentList.length }} 条评论</span>
         </div>
       </template>
 
       <!-- 发表评论 -->
-      <div class="comment-form">
-        <el-input
-          v-model="newComment"
-          type="textarea"
-          :rows="3"
-          placeholder="写下你的评论..."
-          maxlength="500"
-          show-word-limit
-        />
-        <div class="comment-actions">
-          <el-button type="primary" @click="handleAddComment" :loading="commentLoading">
-            发表评论
-          </el-button>
+      <div class="comment-form-card">
+        <div class="comment-form">
+          <el-input
+            v-model="newComment"
+            type="textarea"
+            :rows="4"
+            placeholder="写下你的想法..."
+            maxlength="500"
+            show-word-limit
+            class="comment-textarea"
+          />
+          <div class="comment-actions">
+            <el-button type="primary" @click="handleAddComment" :loading="commentLoading">
+              <el-icon><EditPen /></el-icon>
+              发表评论
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -90,34 +89,30 @@
         <div 
           v-for="comment in commentList" 
           :key="comment.id" 
-          class="comment-item"
+          class="comment-item-card"
         >
           <div class="comment-avatar">
-            <el-avatar :size="40">
+            <el-avatar :size="36">
               <el-icon><User /></el-icon>
             </el-avatar>
           </div>
           <div class="comment-content">
             <div class="comment-header">
-              <span class="comment-author">{{ comment.userName || '匿名用户' }}</span>
+              <span class="commenter-name">{{ comment.userName || '匿名用户' }}</span>
               <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
             </div>
             <div class="comment-text">{{ comment.content }}</div>
             <div class="comment-actions">
-              <el-button 
-                text 
-                :type="comment.isLiked ? 'primary' : 'info'"
-                @click="handleLikeComment(comment)"
-                :disabled="comment.userId === currentUserId"
-              >
-                <el-icon><Star /></el-icon>
-                {{ comment.infoLikeNum || 0 }}
+              <el-button text size="small" @click="handleReply(comment)">
+                <el-icon><ChatDotRound /></el-icon>
+                回复
               </el-button>
               <el-button 
-                v-if="comment.userId === currentUserId"
                 text 
-                type="danger"
-                @click="handleDeleteComment(comment)"
+                size="small" 
+                type="danger" 
+                @click="handleDeleteComment(comment.id)"
+                v-if="canDeleteComment(comment)"
               >
                 <el-icon><Delete /></el-icon>
                 删除
@@ -126,7 +121,10 @@
           </div>
         </div>
         
-        <el-empty v-if="commentList.length === 0 && !commentsLoading" description="暂无评论" />
+        <div v-if="commentList.length === 0" class="no-comments">
+          <el-icon class="no-comments-icon"><ChatDotRound /></el-icon>
+          <p>暂无评论，快来发表第一条评论吧！</p>
+        </div>
       </div>
     </el-card>
 
@@ -134,7 +132,7 @@
     <el-dialog
       v-model="dialogVisible"
       title="编辑资讯"
-      width="900px"
+      width="1000px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       class="information-dialog"
@@ -182,13 +180,21 @@
               :src="formData.infoImage"
               class="uploaded-image"
               fit="cover"
+              :preview-disabled="true"
+              preview-teleported
+              :z-index="3000"
+              @error="imageLoadError = true"
+              hide-on-click-modal
             />
             <el-icon v-else class="image-uploader-icon"><Plus /></el-icon>
           </el-upload>
         </el-form-item>
         
         <el-form-item label="资讯内容" prop="infoMain">
-          <div ref="editorRef" style="height: 400px; border: 1px solid #ccc;"></div>
+          <div class="editor-container">
+            <div id="toolbar-container" class="toolbar-container"></div>
+            <div ref="editorRef" class="editor-content" style="height: 400px; border: 1px solid #ccc; border-top: none;"></div>
+          </div>
         </el-form-item>
       </el-form>
       
@@ -207,7 +213,7 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, Back, Picture, User, Star, Delete, Plus } from '@element-plus/icons-vue'
+import { Edit, Back, Picture, User, Star, Delete, Plus, ArrowLeft, ChatDotRound } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { informationApi, teacherApi } from '@/api'
 import '@wangeditor/editor/dist/css/style.css'
@@ -381,7 +387,7 @@ const handleLikeComment = async (comment) => {
 }
 
 // 删除评论
-const handleDeleteComment = async (comment) => {
+const handleDeleteComment = async (commentId) => {
   try {
     await ElMessageBox.confirm(
       '确定要删除这条评论吗？',
@@ -393,7 +399,7 @@ const handleDeleteComment = async (comment) => {
       }
     )
     
-    await informationApi.deleteComment(comment.id)
+    await informationApi.deleteComment(commentId)
     ElMessage.success('删除成功')
     fetchCommentList()
   } catch (error) {
@@ -402,6 +408,16 @@ const handleDeleteComment = async (comment) => {
       ElMessage.error('删除评论失败')
     }
   }
+}
+
+// 回复评论
+const handleReply = (comment) => {
+  newComment.value = `@${comment.userName || '匿名用户'} `
+}
+
+// 检查是否可以删除评论
+const canDeleteComment = (comment) => {
+  return comment.userId === currentUserId.value
 }
 
 // 返回列表
@@ -439,7 +455,7 @@ const initEditor = async () => {
     
     toolbar = createToolbar({
       editor,
-      selector: editorRef.value,
+      selector: '#toolbar-container',
       config: {
         toolbarKeys: [
           'headerSelect',
@@ -504,7 +520,17 @@ const handleEdit = async () => {
 
 // 图片上传成功
 const handleImageSuccess = (response) => {
-  formData.infoImage = response
+  // 后端返回的是 Result 对象，需要取 data 字段
+  if (response && response.data) {
+    formData.infoImage = response.data
+  } else if (typeof response === 'string') {
+    // 如果直接返回字符串URL
+    formData.infoImage = response
+  } else {
+    console.error('图片上传响应格式错误:', response)
+    ElMessage.error('图片上传响应格式错误')
+    return
+  }
   ElMessage.success('图片上传成功')
 }
 
@@ -561,101 +587,160 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 主容器 */
 .information-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 24px;
   min-height: calc(100vh - 60px);
 }
 
-.detail-card {
-  margin-bottom: 20px;
+/* 文章主体卡片 */
+.article-card {
+  margin-bottom: 24px;
   border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
+  border: 1px solid var(--el-border-color-light);
+  overflow: hidden;
 }
 
-.detail-header {
+/* 文章头部 */
+.article-header {
+  padding: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.article-title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--el-text-color-primary);
+  margin: 0 0 24px 0;
+  word-wrap: break-word;
+}
+
+.article-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.info-title {
-  margin: 0;
-  font-size: 24px;
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.author-name {
   font-weight: 600;
   color: var(--el-text-color-primary);
+  font-size: 16px;
 }
 
-.header-actions {
+.publish-time {
+  color: var(--el-text-color-regular);
+  font-size: 14px;
+}
+
+.meta-right {
   display: flex;
   gap: 12px;
 }
 
-.detail-content {
-  padding: 20px 0;
-}
-
-.info-details {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.info-item {
-  display: flex;
-  align-items: flex-start;
-}
-
-.info-item.full-width {
-  flex-direction: column;
-}
-
-.info-item label {
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  min-width: 100px;
-  margin-right: 12px;
-}
-
-.info-item span {
-  color: var(--el-text-color-regular);
-}
-
-.content {
-  margin-top: 8px;
-  line-height: 1.8;
-  color: var(--el-text-color-regular);
-}
-
-.info-cover {
-  height: 300px;
+.action-btn {
   border-radius: 8px;
+  padding: 8px 16px;
+}
+
+/* 封面图片 */
+.article-cover {
+  margin: 0 24px 24px 24px;
+  border-radius: 12px;
   overflow: hidden;
-  background-color: var(--el-fill-color-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .cover-image {
   width: 100%;
-  height: 100%;
+  height: 300px;
+  object-fit: cover;
+  display: block;
 }
 
-.no-cover {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--el-text-color-placeholder);
+/* 文章内容 */
+.article-content {
+  padding: 0 24px 24px 24px;
 }
 
-.no-cover-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
+.content {
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--el-text-color-primary);
+  word-wrap: break-word;
 }
 
+/* 内容样式优化 */
+.content :deep(h1),
+.content :deep(h2),
+.content :deep(h3),
+.content :deep(h4),
+.content :deep(h5),
+.content :deep(h6) {
+  margin: 24px 0 16px 0;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+}
+
+.content :deep(p) {
+  margin: 16px 0;
+  text-align: justify;
+}
+
+.content :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.content :deep(blockquote) {
+  border-left: 4px solid var(--el-color-primary);
+  padding: 16px;
+  margin: 16px 0;
+  background: var(--el-fill-color-extra-light);
+  border-radius: 0 8px 8px 0;
+}
+
+.content :deep(code) {
+  background: var(--el-fill-color-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.content :deep(pre) {
+  background: var(--el-fill-color);
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+/* 评论区卡片 */
 .comments-card {
   border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
+  border: 1px solid var(--el-border-color-light);
 }
 
 .comments-header {
@@ -664,42 +749,72 @@ onUnmounted(() => {
   align-items: center;
 }
 
-.comments-header h3 {
+.comments-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.title-icon {
+  color: var(--el-color-primary);
 }
 
 .comment-count {
   color: var(--el-text-color-regular);
   font-size: 14px;
+  background: var(--el-fill-color-light);
+  padding: 4px 12px;
+  border-radius: 12px;
 }
 
-.comment-form {
+/* 评论表单 */
+.comment-form-card {
+  background: var(--el-fill-color-extra-light);
+  padding: 24px;
+  border-radius: 12px;
   margin-bottom: 24px;
 }
 
-.comment-actions {
-  margin-top: 12px;
-  text-align: right;
-}
-
-.comment-list {
+.comment-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
-.comment-item {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  background-color: var(--el-fill-color-lighter);
+.comment-textarea {
   border-radius: 8px;
 }
 
-.comment-avatar {
-  flex-shrink: 0;
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 评论列表 */
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comment-item-card {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  background: var(--el-fill-color-extra-light);
+  border-radius: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s ease;
+}
+
+.comment-item-card:hover {
+  background: var(--el-fill-color-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .comment-content {
@@ -713,25 +828,117 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 
-.comment-author {
+.commenter-name {
   font-weight: 600;
   color: var(--el-text-color-primary);
+  font-size: 15px;
 }
 
 .comment-time {
   color: var(--el-text-color-placeholder);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .comment-text {
   color: var(--el-text-color-regular);
   line-height: 1.6;
   margin-bottom: 12px;
+  font-size: 15px;
 }
 
 .comment-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+}
+
+/* 无评论状态 */
+.no-comments {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--el-text-color-placeholder);
+}
+
+.no-comments-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: var(--el-color-info-light-5);
+}
+
+.no-comments p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .information-detail-container {
+    padding: 16px;
+  }
+  
+  .article-header {
+    padding: 20px;
+  }
+  
+  .article-title {
+    font-size: 24px;
+  }
+  
+  .article-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .article-cover {
+    margin: 0 20px 20px 20px;
+  }
+  
+  .cover-image {
+    height: 200px;
+  }
+  
+  .article-content {
+    padding: 0 20px 20px 20px;
+  }
+  
+  .comment-form-card {
+    padding: 20px;
+  }
+  
+  .comment-item-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .information-detail-container {
+    padding: 12px;
+  }
+  
+  .article-header {
+    padding: 16px;
+  }
+  
+  .article-title {
+    font-size: 20px;
+  }
+  
+  .cover-image {
+    height: 180px;
+  }
+  
+  .article-content {
+    padding: 0 16px 16px 16px;
+  }
+  
+  .meta-right {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .action-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .information-dialog {
@@ -775,24 +982,60 @@ onUnmounted(() => {
   text-align: right;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .information-detail-container {
-    padding: 16px;
-  }
-  
-  .detail-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  
-  .info-title {
-    font-size: 20px;
-  }
-  
-  .comment-item {
-    flex-direction: column;
-  }
+/* 编辑器容器样式 */
+.editor-container {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toolbar-container {
+  border-bottom: 1px solid #ccc;
+  background-color: #f8f9fa;
+}
+
+.editor-content {
+  border: none !important;
+  border-radius: 0;
+}
+
+/* 确保编辑器在模态框中正确显示 */
+.information-dialog .w-e-text-container {
+  height: 400px !important;
+}
+
+.information-dialog .w-e-text {
+  height: 100% !important;
+}
+
+/* 修复图片预览冲突 */
+:deep(.el-image__preview) {
+  z-index: 3000 !important;
+}
+
+:deep(.el-image-viewer__wrapper) {
+  z-index: 3000 !important;
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .information-detail-container {
+  background-color: var(--el-bg-color-page);
+}
+
+[data-theme="dark"] .breadcrumb-card,
+[data-theme="dark"] .article-card,
+[data-theme="dark"] .comments-card {
+  background-color: var(--el-bg-color);
+  border-color: var(--el-border-color);
+}
+
+[data-theme="dark"] .comment-form-card,
+[data-theme="dark"] .comment-item-card {
+  background-color: var(--el-fill-color-darker);
+  border-color: var(--el-border-color-dark);
+}
+
+[data-theme="dark"] .comment-item-card:hover {
+  background-color: var(--el-fill-color-dark);
 }
 </style>

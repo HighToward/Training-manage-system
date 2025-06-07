@@ -62,20 +62,21 @@
           shadow="hover"
           @click="handleViewDetail(item)"
         >
-          <div class="card-image" @click.stop>
-            <el-image
-              v-if="item.infoImage"
-              :src="item.infoImage"
-              fit="cover"
-              class="info-image"
-              :preview-src-list="[item.infoImage]"
-              @error="imageLoadError = true"
-            />
-            <div v-else class="no-image">
-              <el-icon class="no-image-icon"><Picture /></el-icon>
-              <span>暂无封面</span>
-            </div>
+        <div class="card-image" @click.stop>
+          <el-image
+            v-if="item.infoImage"
+            :src="item.infoImage"
+            fit="cover"
+            class="info-image"
+            :preview-src-list="[item.infoImage]"
+            preview-teleported
+            hide-on-click-modal
+          />
+          <div v-else class="no-image">
+            <el-icon class="no-image-icon"><Picture /></el-icon>
+            <span>暂无封面</span>
           </div>
+        </div>
           
           <div class="card-content">
             <div class="info-header">
@@ -130,7 +131,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑资讯' : '新建资讯'"
-      width="900px"
+      width="1000px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       class="information-dialog"
@@ -183,7 +184,10 @@
         </el-form-item>
         
         <el-form-item label="资讯内容" prop="infoMain">
-          <div ref="editorRef" style="height: 400px; border: 1px solid #ccc;"></div>
+          <div class="editor-container">
+            <div id="toolbar-container" class="toolbar-container"></div>
+            <div ref="editorRef" class="editor-content" style="height: 400px; border: 1px solid #ccc; border-top: none;"></div>
+          </div>
         </el-form-item>
       </el-form>
       
@@ -272,6 +276,8 @@ const fetchInformationList = async () => {
     const response = await informationApi.getInformationList(queryParams)
     if (response && Array.isArray(response)) {
       informationList.value = response
+      // 补充教师名称信息
+      await enrichInformationList()
       total.value = response.length
       pages.value = Math.ceil(total.value / queryParams.pageSize)
     } else {
@@ -287,6 +293,25 @@ const fetchInformationList = async () => {
     pages.value = 0
   } finally {
     loading.value = false
+  }
+}
+
+// 补充资讯列表信息（教师名称等）
+const enrichInformationList = async () => {
+  try {
+    const teachers = await teacherApi.getTeacherList()
+    if (teachers && Array.isArray(teachers)) {
+      informationList.value.forEach(info => {
+        if (info.teaId && !info.teaName) {
+          const teacher = teachers.find(t => t.id === info.teaId)
+          if (teacher) {
+            info.teaName = teacher.teaName
+          }
+        }
+      })
+    }
+  } catch (error) {
+    console.error('补充资讯列表信息失败:', error)
   }
 }
 
@@ -341,7 +366,13 @@ const formatDate = (date) => {
 // 截取内容
 const truncateContent = (content, length) => {
   if (!content) return ''
-  return content.length > length ? content.substring(0, length) + '...' : content
+  
+  // 创建临时DOM元素来去除HTML标签
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = content
+  const textContent = tempDiv.textContent || tempDiv.innerText || ''
+  
+  return textContent.length > length ? textContent.substring(0, length) + '...' : textContent
 }
 
 // 初始化编辑器
@@ -362,7 +393,7 @@ const initEditor = async () => {
     
     toolbar = createToolbar({
       editor,
-      selector: editorRef.value,
+      selector: '#toolbar-container',
       config: {
         toolbarKeys: [
           'headerSelect',
@@ -443,7 +474,17 @@ const handleViewDetail = (row) => {
 
 // 图片上传成功
 const handleImageSuccess = (response) => {
-  formData.infoImage = response
+  // 后端返回的是 Result 对象，需要取 data 字段
+  if (response && response.data) {
+    formData.infoImage = response.data
+  } else if (typeof response === 'string') {
+    // 如果直接返回字符串URL
+    formData.infoImage = response
+  } else {
+    console.error('图片上传响应格式错误:', response)
+    ElMessage.error('图片上传响应格式错误')
+    return
+  }
   ElMessage.success('图片上传成功')
 }
 
@@ -746,6 +787,32 @@ onMounted(() => {
 
 .dialog-footer {
   text-align: right;
+}
+
+/* 编辑器容器样式 */
+.editor-container {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toolbar-container {
+  border-bottom: 1px solid #ccc;
+  background-color: #f8f9fa;
+}
+
+.editor-content {
+  border: none !important;
+  border-radius: 0;
+}
+
+/* 确保编辑器在模态框中正确显示 */
+.information-dialog .w-e-text-container {
+  height: 400px !important;
+}
+
+.information-dialog .w-e-text {
+  height: 100% !important;
 }
 
 /* 搜索区域标题样式 - 支持黑夜模式 */

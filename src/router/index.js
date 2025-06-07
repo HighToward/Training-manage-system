@@ -38,7 +38,7 @@ const routes = [
     component: () => import('../views/course/CourseDetail.vue'),
     meta: { 
       title: '课程详情',
-      parentTitle: '课程管理',
+      parentTitle: '课程列表',
       parentMenu: 'course-management'
     },
     props: true
@@ -58,8 +58,8 @@ const routes = [
     name: 'ClassStudents',
     component: () => import('../views/classmgt/ClassStudentManage.vue'),
     meta: { 
-      title: '学生管理',
-      parentTitle: '班级管理',
+      title: '学生列表',
+      parentTitle: '班级列表',
       parentMenu: 'class-main-management'
     }
   },
@@ -68,8 +68,8 @@ const routes = [
     name: 'ClassCourses',
     component: () => import('../views/classmgt/ClassCourseManage.vue'),
     meta: { 
-      title: '课程管理',
-      parentTitle: '班级管理',
+      title: '课程列表',
+      parentTitle: '班级列表',
       parentMenu: 'class-main-management'
     }
   },
@@ -88,7 +88,7 @@ const routes = [
     component: () => import('../views/information/InformationDetail.vue'),
     meta: { 
       title: '资讯详情',
-      parentTitle: '资讯管理',
+      parentTitle: '资讯列表',
       parentMenu: 'information-management'
     },
     props: true
@@ -98,7 +98,18 @@ const routes = [
     name: 'Login',
     component: Login,
     meta: { title: '登录' }
-  }
+  },
+  // 个人信息页面
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('../views/Profile.vue'),
+    meta: { 
+      title: '个人信息',
+      requiresAuth: true,
+      requiresTeacher: true
+    }
+  },
 ];
 
 const router = createRouter({
@@ -149,9 +160,14 @@ router.beforeEach((to, from, next) => {
     }
   } else {
     // 角色权限判断
-    if (requiresAuth && isAuthenticated && userInfo && userInfo.role !== 1) {
-      console.warn('非教师用户尝试访问受保护页面');
-      // 可以根据需求进行拦截或允许通过
+    if (requiresAuth && isAuthenticated && userInfo) {
+      // 如果页面明确要求教师权限
+      if (to.meta.requiresTeacher && userInfo.role !== 1) {
+        console.warn('非教师用户尝试访问受保护页面');
+        // 重定向到无权限页面
+        next({ name: 'Login' });
+        return;
+      }
     }
     next();
   }
