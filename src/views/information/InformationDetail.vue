@@ -18,7 +18,7 @@
               <div class="meta-info">
                 <span class="comment-count">
                   <el-icon><ChatDotRound /></el-icon>
-                  {{ commentList.length }} 条评论
+                  {{ informationDetail.infoComment || 0 }} 条评论
                 </span>
                 <span class="publish-time">{{ formatDate(informationDetail.createTime) }}</span>
               </div>
@@ -101,7 +101,7 @@
           class="comment-item-card"
         >
           <div class="comment-avatar">
-            <el-avatar :size="36">
+            <el-avatar :size="36" :src="comment.userAvatar">
               <el-icon><User /></el-icon>
             </el-avatar>
           </div>

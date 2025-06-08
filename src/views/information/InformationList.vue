@@ -95,7 +95,7 @@
               <div class="date-info">
                 <div class="comment-info">
                   <el-icon><ChatDotRound /></el-icon>
-                  <span>{{ item.commentCount || 0 }} 条评论</span>
+                  <span>{{ item.infoComment || 0 }} 条评论</span>
                 </div>
                 <el-icon><Calendar /></el-icon>
                 <span>{{ formatDate(item.createTime) }}</span>
