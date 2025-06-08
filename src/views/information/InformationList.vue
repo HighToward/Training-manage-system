@@ -915,6 +915,18 @@ onMounted(() => {
   color: #e2e8f0 !important; /* 或者 var(--text-color) */
 }
 
+[data-theme="dark"] .author-name {
+  color: #e2e8f0 !important; 
+}
+
+[data-theme="dark"] .date-info {
+  color: #e2e8f0 !important; 
+}
+
+[data-theme="dark"] .info-content p {
+  color: #e2e8f0 !important; 
+}
+
 [data-theme="dark"] .meta-item {
   color: #a0aec0; /* 调整元信息颜色以在深色背景下更清晰 */
 }

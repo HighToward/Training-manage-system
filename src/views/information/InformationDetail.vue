@@ -77,7 +77,6 @@
             placeholder="写下你的想法..."
             maxlength="500"
             show-word-limit
-            class="comment-textarea"
           />
           <div class="comment-actions">
             <el-button type="primary" @click="handleAddComment" :loading="commentLoading">
@@ -107,7 +106,8 @@
             </div>
             <div class="comment-text">{{ comment.content }}</div>
             <div class="comment-actions">
-              <el-button text size="small" @click="handleReply(comment)">
+              <el-button text size="small" @click="handleReply(comment)"
+                          class="comment-reply">
                 <el-icon><ChatDotRound /></el-icon>
                 回复
               </el-button>
@@ -117,6 +117,7 @@
                 type="danger" 
                 @click="handleDeleteComment(comment.id)"
                 v-if="canDeleteComment(comment)"
+                class="comment-delete"
               >
                 <el-icon><Delete /></el-icon>
                 删除
@@ -819,6 +820,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  background: rgba(0,0,0,0);
 }
 
 .comment-textarea {
@@ -841,9 +843,7 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   padding: 20px;
-  background: var(--el-fill-color-extra-light);
   border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s ease;
 }
 
@@ -1053,11 +1053,6 @@ onUnmounted(() => {
   z-index: 3000 !important;
 }
 
-/* 深色模式适配 */
-[data-theme="dark"] .information-detail-container {
-  background-color: var(--el-bg-color-page);
-}
-
 [data-theme="dark"] .breadcrumb-card,
 [data-theme="dark"] .article-card,
 [data-theme="dark"] .comments-card {
@@ -1065,13 +1060,40 @@ onUnmounted(() => {
   border-color: var(--el-border-color);
 }
 
-[data-theme="dark"] .comment-form-card,
-[data-theme="dark"] .comment-item-card {
-  background-color: var(--el-fill-color-darker);
-  border-color: var(--el-border-color-dark);
+[data-theme="dark"] .article-title {
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .author-name {
+  color: #e2e8f0 !important; 
+}
+[data-theme="dark"] .publish-time {
+  color: #cbd5e0!important;
+}
+[data-theme="dark"] .content {
+  color: #e2e8f0 !important;
 }
 
-[data-theme="dark"] .comment-item-card:hover {
-  background-color: var(--el-fill-color-dark);
+[data-theme="dark"] .comments-title {
+  color: #e2e8f0 !important;
 }
+[data-theme="dark"] .comment-text {
+  color: #cbd5e0 !important;
+}
+
+[data-theme="dark"] .comment-textarea {
+  background: #415066 !important;
+}
+
+[data-theme="dark"] .commenter-name {
+  color: #cbd5e0 !important;
+}
+[data-theme="dark"] .comment-reply {
+  color: #cbd5e0 !important;
+}
+
+[data-theme="dark"] .comment-form-card,
+[data-theme="dark"] .comment-item-card {
+  background: #415066;
+}
+
 </style>

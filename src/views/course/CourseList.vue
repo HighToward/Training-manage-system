@@ -295,7 +295,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { courseApi, teacherApi } from '@/api'
+import { courseApi, teacherApi, fileUploadApi } from '@/api'
 
 const router = useRouter()
 
@@ -601,15 +601,23 @@ const cancelForm = () => {
 const handleUpload = async (options) => {
   const file = options.file
   try {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      formData.couPic = e.target.result
-      imageLoadError.value = false
-    }
-    reader.readAsDataURL(file)
+    // 显示上传中状态
+    formLoading.value = true
+    ElMessage.info('正在上传课程封面...')
+    
+    // 调用后端上传接口
+    const fileUrl = await fileUploadApi.uploadImage(file)
+    
+    // 设置表单数据为服务器返回的URL
+    formData.couPic = fileUrl
+    imageLoadError.value = false
+    
+    ElMessage.success('课程封面上传成功')
   } catch (error) {
     console.error('上传封面失败:', error)
-    ElMessage.error('上传封面失败')
+    ElMessage.error('上传封面失败: ' + (error.message || '未知错误'))
+  } finally {
+    formLoading.value = false
   }
 }
 

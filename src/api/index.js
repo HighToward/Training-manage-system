@@ -175,16 +175,33 @@ export const fileUploadApi = {
   uploadVideo(file) {
     const formData = new FormData();
     formData.append('file', file);
-    // api 实例上的全局请求拦截器会自动添加 token (如果 localStorage 中有)
-    // 全局响应拦截器会处理后端返回的 Result<T> 对象:
-    // - 如果后端 code === 200, 拦截器会直接返回 Result.data (即后端生成的 fileUrl 字符串)
-    // - 如果后端 code !== 200 或发生网络错误, 拦截器会返回一个 Promise.reject(new Error(...))
     return api.post('/upload/video', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
-    // 这里不再需要 .then() 和 .catch()，具体的 Promise 处理交给调用它的组件 (ChapterManage.vue)
+  },
+  
+  // 上传图片文件
+  uploadImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+  
+  // 上传头像文件
+  uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/upload/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
   }
 };
 

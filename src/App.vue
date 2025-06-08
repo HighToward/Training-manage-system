@@ -38,7 +38,7 @@
 
           <el-sub-menu index="class-main-management">
             <template #title>
-              <el-icon><OfficeBuilding /></el-icon>
+              <el-icon><User /></el-icon>
               <span>班级管理</span>
             </template>
             <el-menu-item index="/class/list">班级列表</el-menu-item>
@@ -131,7 +131,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { Sunny, Moon } from '@element-plus/icons-vue'
+import { Sunny, Moon, Expand, Fold, Reading, UserFilled, Document, TrendCharts, Tools } from '@element-plus/icons-vue'
 
 
 const route = useRoute()
