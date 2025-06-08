@@ -14,9 +14,15 @@
                 <el-icon><User /></el-icon>
               </el-avatar>
               <div class="author-details">
-                <span class="author-name">{{ informationDetail.teaName || '未知作者' }}</span>
+              <span class="author-name">{{ informationDetail.teaName || '未知作者' }}</span>
+              <div class="meta-info">
+                <span class="comment-count">
+                  <el-icon><ChatDotRound /></el-icon>
+                  {{ commentList.length }} 条评论
+                </span>
                 <span class="publish-time">{{ formatDate(informationDetail.createTime) }}</span>
               </div>
+            </div>
             </div>
           </div>
           <div class="meta-right">
@@ -682,8 +688,27 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
+.meta-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.comment-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #409eff;
+  font-size: 14px;
+}
+
+.comment-count .el-icon {
+  font-size: 16px;
+}
+
 .publish-time {
-  color: var(--el-text-color-regular);
+  color: #666;
   font-size: 14px;
 }
 

@@ -93,6 +93,10 @@
               </div>
               <!-- 日期信息行 - 独立左对齐 -->
               <div class="date-info">
+                <div class="comment-info">
+                  <el-icon><ChatDotRound /></el-icon>
+                  <span>{{ item.commentCount || 0 }} 条评论</span>
+                </div>
                 <el-icon><Calendar /></el-icon>
                 <span>{{ formatDate(item.createTime) }}</span>
               </div>
@@ -318,6 +322,17 @@ const enrichInformationList = async () => {
           }
         }
       })
+    }
+    
+    // 获取每个资讯的评论数
+    for (const info of informationList.value) {
+      try {
+        const comments = await informationApi.getCommentsByInfoId(info.id)
+        info.commentCount = comments ? comments.length : 0
+      } catch (error) {
+        console.error(`获取资讯 ${info.id} 的评论数失败:`, error)
+        info.commentCount = 0
+      }
     }
   } catch (error) {
     console.error('补充资讯列表信息失败:', error)
@@ -770,15 +785,21 @@ onMounted(() => {
 .date-info {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-  /* 移除 margin-left，让日期左对齐到卡片边缘 */
+  gap: 16px;
+  color: #666;
+  font-size: 14px;
+  margin-top: 8px;
 }
 
-.date-info .el-icon {
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
+.comment-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #409eff;
+}
+
+.comment-info .el-icon {
+  font-size: 16px;
 }
 
 .meta-item {
