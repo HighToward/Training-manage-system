@@ -336,6 +336,90 @@ export const informationApi = {
   }
 };
 
+// 问题管理相关API
+export const questionApi = {
+  // 获取问题列表
+  getQuestionList(params) {
+    return api.get('/topicQuestion/list', { params });
+  },
+  // 获取问题详情
+  getQuestionById(id) {
+    return api.get(`/topicQuestion/${id}`);
+  },
+  // 创建问题
+  createQuestion(data) {
+    return api.post('/topicQuestion', data);
+  },
+  // 更新问题
+  updateQuestion(id, data) {
+    return api.put(`/topicQuestion/${id}`, data);
+  },
+  // 删除问题
+  deleteQuestion(id) {
+    return api.delete(`/topicQuestion/${id}`);
+  },
+  // 根据学生ID获取问题
+  getQuestionsByStudentId(stuId) {
+    return api.get(`/topicQuestion/student/${stuId}`);
+  },
+  // 根据班级ID获取问题
+  getQuestionsByClassId(classId) {
+    return api.get(`/topicQuestion/class/${classId}`);
+  },
+  // 采纳问题
+  adoptQuestion(id) {
+    return api.put(`/topicQuestion/${id}/adopt`);
+  },
+  // 批量采纳问题
+  batchAdoptQuestions(ids) {
+    return api.put('/topicQuestion/batch-adopt', { ids });
+  },
+  // 点赞问题
+  likeQuestion(qId, stuId) {
+    return api.post(`/topicQuestion/${qId}/like/${stuId}`);
+  },
+  // 获取问题类型列表
+  getQuestionTypes() {
+    return api.get('/topicQuestion/types');
+  },
+  // 取消点赞问题
+  unlikeQuestion(qId, stuId) {
+    return api.delete(`/topicQuestion/${qId}/like/${stuId}`);
+  },
+  // 收藏问题
+  collectQuestion(qId, stuId) {
+    return api.post(`/topicQuestion/${qId}/collect/${stuId}`);
+  },
+  // 取消收藏问题
+  uncollectQuestion(qId, stuId) {
+    return api.delete(`/topicQuestion/${qId}/collect/${stuId}`);
+  },
+  // 获取问题评论
+  getCommentsByQuestionId(qId) {
+    return api.get(`/topicQuestion/${qId}/comments`);
+  },
+  // 创建问题评论
+  createQuestionComment(qId, comment) {
+    return api.post(`/topicQuestion/${qId}/comments`, comment);
+  },
+  // 删除问题评论
+  deleteQuestionComment(commentId) {
+    return api.delete(`/topicQuestion/comments/${commentId}`);
+  },
+  // 点赞问题评论
+  likeQuestionComment(commentId, stuId) {
+    return api.post(`/topicQuestion/comments/${commentId}/like/${stuId}`);
+  },
+  // 取消点赞问题评论
+  unlikeQuestionComment(commentId, stuId) {
+    return api.delete(`/topicQuestion/comments/${commentId}/like/${stuId}`);
+  },
+  // 采纳问题评论
+  adoptQuestionComment(commentId) {
+    return api.put(`/topicQuestion/comments/${commentId}/adopt`);
+  }
+};
+
 // 用户相关API
 export const userApi = {
   // 获取当前用户信息（包含教师信息）
@@ -357,5 +441,20 @@ export const userApi = {
     });
   }
 };
+
+// 仪表盘API
+export const dashboardApi = {
+  // 获取统计数据
+  getStats: () => api.get('/dashboard/stats'),
+  
+  // 获取最新评论
+  getLatestComments: () => api.get('/dashboard/latest-comments'),
+  
+  // 获取最新课程
+  getLatestCourses: () => api.get('/dashboard/latest-courses'),
+  
+  // 获取最新购买记录
+  getLatestPurchases: () => api.get('/dashboard/latest-purchases')
+}
 
 export default api;

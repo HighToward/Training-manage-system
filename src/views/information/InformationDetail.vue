@@ -76,6 +76,26 @@
       <!-- 发表评论 -->
       <div class="comment-form-card">
         <div class="comment-form">
+          <!-- 引用框 -->
+          <div v-if="showQuoteBox && replyingTo" class="quote-box">
+            <div class="quote-header">
+              <span class="quote-label">回复</span>
+              <el-button text size="small" @click="cancelReply" class="cancel-reply">
+                <el-icon><Close /></el-icon>
+              </el-button>
+            </div>
+            <div class="quote-content">
+              <div class="quote-user-info">
+                <el-avatar :size="24" :src="replyingTo.userAvatar">
+                  <el-icon><User /></el-icon>
+                </el-avatar>
+                <span class="quote-username">{{ replyingTo.userName || '匿名用户' }}</span>
+                <span class="quote-time">{{ formatDate(replyingTo.createTime) }}</span>
+              </div>
+              <div class="quote-text">{{ replyingTo.content }}</div>
+            </div>
+          </div>
+          
           <el-input
             v-model="newComment"
             type="textarea"
@@ -98,6 +118,7 @@
         <div 
           v-for="comment in commentList" 
           :key="comment.id" 
+          :data-comment-id="comment.id"
           class="comment-item-card"
         >
           <div class="comment-avatar">
@@ -110,6 +131,25 @@
               <span class="commenter-name">{{ comment.userName || '匿名用户' }}</span>
               <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
             </div>
+            
+            <!-- 引用内容显示 -->
+            <div v-if="comment.parentCommentsId" class="comment-quote" @click="scrollToComment(comment.parentCommentsId)">
+              <div class="quote-indicator">
+                <el-icon><ChatDotRound /></el-icon>
+                <span>回复了</span>
+              </div>
+              <div class="quoted-comment">
+                <div class="quoted-user-info">
+                  <el-avatar :size="20" :src="getQuotedUserAvatar(comment.parentCommentsId)">
+                    <el-icon><User /></el-icon>
+                  </el-avatar>
+                  <span class="quoted-username">{{ getQuotedUserName(comment.parentCommentsId) }}</span>
+                  <span class="quoted-time">{{ formatDate(getQuotedCommentTime(comment.parentCommentsId)) }}</span>
+                </div>
+                <div class="quoted-text">{{ getQuotedCommentContent(comment.parentCommentsId) }}</div>
+              </div>
+            </div>
+            
             <div class="comment-text">{{ comment.content }}</div>
             <div class="comment-actions">
               <el-button text size="small" @click="handleReply(comment)"
@@ -224,7 +264,7 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, Back, Picture, User, Star, Delete, Plus, ArrowLeft, ChatDotRound } from '@element-plus/icons-vue'
+import { Edit, Back, Picture, User, Star, Delete, Plus, ArrowLeft, ChatDotRound, Close } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { informationApi, teacherApi } from '@/api'
 import '@wangeditor/editor/dist/css/style.css'
@@ -241,6 +281,10 @@ const informationDetail = ref({})
 const commentList = ref([])
 const newComment = ref('')
 const currentUserId = ref(null)
+
+// 引用相关数据
+const replyingTo = ref(null)
+const showQuoteBox = ref(false)
 
 // 编辑相关
 const dialogVisible = ref(false)
@@ -365,12 +409,17 @@ const handleAddComment = async () => {
   try {
     const commentData = {
       content: newComment.value.trim(),
-      userId: currentUserId.value
+      userId: currentUserId.value,
+      // 如果是回复评论，添加引用信息
+      parentCommentsId: replyingTo.value ? replyingTo.value.id : null,
+      atId: replyingTo.value ? replyingTo.value.userId : null
     }
     
     await informationApi.createComment(route.params.id, commentData)
     ElMessage.success('评论发表成功')
     newComment.value = ''
+    // 清除引用状态
+    cancelReply()
     fetchCommentList()
   } catch (error) {
     console.error('发表评论失败:', error)
@@ -431,7 +480,61 @@ const handleDeleteComment = async (commentId) => {
 
 // 回复评论
 const handleReply = (comment) => {
-  newComment.value = `@${comment.userName || '匿名用户'} `
+  replyingTo.value = comment
+  showQuoteBox.value = true
+  // 滚动到评论框
+  nextTick(() => {
+    const commentForm = document.querySelector('.comment-form-card')
+    if (commentForm) {
+      commentForm.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
+}
+
+// 取消回复
+const cancelReply = () => {
+  replyingTo.value = null
+  showQuoteBox.value = false
+}
+
+// 跳转到被引用的评论
+const scrollToComment = (commentId) => {
+  const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`)
+  if (commentElement) {
+    commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // 添加高亮效果
+    commentElement.classList.add('highlight-comment')
+    setTimeout(() => {
+      commentElement.classList.remove('highlight-comment')
+    }, 2000)
+  }
+}
+
+// 获取被引用评论的用户头像
+const getQuotedUserAvatar = (commentId) => {
+  const comment = commentList.value.find(c => c.id === commentId)
+  return comment ? comment.userAvatar : ''
+}
+
+// 获取被引用评论的用户名
+const getQuotedUserName = (commentId) => {
+  const comment = commentList.value.find(c => c.id === commentId)
+  return comment ? (comment.userName || '匿名用户') : '已删除用户'
+}
+
+// 获取被引用评论的时间
+const getQuotedCommentTime = (commentId) => {
+  const comment = commentList.value.find(c => c.id === commentId)
+  return comment ? comment.createTime : ''
+}
+
+// 获取被引用评论的内容
+const getQuotedCommentContent = (commentId) => {
+  const comment = commentList.value.find(c => c.id === commentId)
+  if (!comment) return '该评论已被删除'
+  // 如果内容过长，进行截断
+  const content = comment.content || ''
+  return content.length > 50 ? content.substring(0, 50) + '...' : content
 }
 
 // 检查是否可以删除评论
@@ -745,7 +848,6 @@ onUnmounted(() => {
 .content {
   font-size: 16px;
   line-height: 1.8;
-  color: var(--el-text-color-primary);
   word-wrap: break-word;
 }
 
@@ -759,7 +861,23 @@ onUnmounted(() => {
   margin: 24px 0 16px 0;
   font-weight: 600;
   line-height: 1.4;
-  color: var(--el-text-color-primary);
+}
+
+.content :deep(a) {
+  font-weight: bold;
+}
+
+[data-theme="dark"] .content :deep(a) {
+  color: #f56c6c;
+}
+
+[data-theme="dark"] .content :deep(h1),
+[data-theme="dark"] .content :deep(h2),
+[data-theme="dark"] .content :deep(h3),
+[data-theme="dark"] .content :deep(h4),
+[data-theme="dark"] .content :deep(h5),
+[data-theme="dark"] .content :deep(h6) {
+  color: white;
 }
 
 .content :deep(p) {
@@ -857,6 +975,77 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 
+/* 引用框样式 */
+.quote-box {
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.quote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.quote-label {
+  font-size: 12px;
+  color: var(--el-color-primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cancel-reply {
+  color: var(--el-text-color-placeholder);
+  padding: 0;
+  min-height: auto;
+}
+
+.cancel-reply:hover {
+  color: var(--el-color-danger);
+}
+
+.quote-content {
+  background: var(--el-bg-color);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.quote-user-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.quote-username {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.quote-time {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+.quote-text {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  line-height: 1.4;
+  max-height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 /* 评论列表 */
 .comment-list {
   display: flex;
@@ -865,51 +1054,142 @@ onUnmounted(() => {
 }
 
 .comment-item-card {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
   display: flex;
   gap: 12px;
-  padding: 20px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
 }
 
 .comment-item-card:hover {
-  background: var(--el-fill-color-light);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--el-color-primary-light-5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comment-item-card.highlight-comment {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+  background: var(--el-color-primary-light-9);
+}
+
+.comment-avatar {
+  flex-shrink: 0;
 }
 
 .comment-content {
   flex: 1;
+  min-width: 0;
 }
 
 .comment-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
 .commenter-name {
   font-weight: 600;
   color: var(--el-text-color-primary);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .comment-time {
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
-  font-size: 13px;
+}
+
+/* 评论中的引用内容样式 */
+.comment-quote {
+  background: var(--el-fill-color-extra-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.comment-quote:hover {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-color-primary-light-9);
+}
+
+.quote-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--el-color-primary);
+  font-weight: 500;
+}
+
+.quoted-comment {
+  background: var(--el-bg-color);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.quoted-user-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.quoted-username {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.quoted-time {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+.quoted-text {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  line-height: 1.4;
+  max-height: 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .comment-text {
   color: var(--el-text-color-regular);
   line-height: 1.6;
   margin-bottom: 12px;
-  font-size: 15px;
+  word-wrap: break-word;
 }
 
 .comment-actions {
   display: flex;
   gap: 8px;
+}
+
+.comment-reply,
+.comment-delete {
+  font-size: 12px;
+  padding: 4px 8px;
+  height: auto;
+}
+
+.comment-reply:hover {
+  color: var(--el-color-primary);
+  background-color: var(--el-color-primary-light-9);
+}
+
+.comment-delete:hover {
+  color: var(--el-color-danger);
+  background-color: var(--el-color-danger-light-9);
 }
 
 /* 无评论状态 */
@@ -1097,6 +1377,10 @@ onUnmounted(() => {
 [data-theme="dark"] .content {
   color: #e2e8f0 !important;
 }
+[data-theme="dark"] a {
+  color: #e2e8f0 !important;
+}
+
 
 [data-theme="dark"] .comments-title {
   color: #e2e8f0 !important;

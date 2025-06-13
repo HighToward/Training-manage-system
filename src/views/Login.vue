@@ -87,7 +87,7 @@ const handleLogin = async () => {
     })
     
     ElMessage.success('登录成功')
-    router.push('/course/list')
+    router.push('/dashboard')
     
   } catch (error) {
     ElMessage.error(error.message || '登录失败')

@@ -28,6 +28,14 @@
           router
           :collapse="isCollapsed"
         >
+          <!-- 仪表盘 - 放在第一位 -->
+          <el-menu-item index="/dashboard">
+            <template #title>
+              <el-icon><Odometer /></el-icon>
+              <span>仪表盘</span>
+            </template>
+          </el-menu-item>
+
           <el-sub-menu index="course-management">
             <template #title>
               <el-icon><School /></el-icon>
@@ -50,6 +58,14 @@
               <span>资讯管理</span>
             </template>
             <el-menu-item index="/information/list">资讯列表</el-menu-item>
+          </el-sub-menu>
+
+          <el-sub-menu index="question-management">
+            <template #title>
+              <el-icon><ChatDotRound /></el-icon>
+              <span>问题管理</span>
+            </template>
+            <el-menu-item index="/question/list">问题反馈</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="statistics-analysis">
@@ -131,7 +147,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { Sunny, Moon, Expand, Fold, Reading, UserFilled, Document, TrendCharts, Tools } from '@element-plus/icons-vue'
+import { Sunny, Moon, Expand, Fold, Reading, UserFilled, Document, TrendCharts, Tools, Odometer, School, User, DataAnalysis, Setting, OfficeBuilding, ChatDotRound } from '@element-plus/icons-vue'
 
 
 const route = useRoute()

@@ -12,7 +12,7 @@
         <div class="search-form">
           <el-input 
             v-model="queryParams.infoTitle" 
-            placeholder="搜索资讯标题..." 
+            placeholder="搜索资讯标题或发布人..." 
             clearable 
             size="large"
             class="search-input"
@@ -223,6 +223,7 @@ import { useRouter } from 'vue-router'
 import { informationApi, teacherApi } from '@/api'
 import '@wangeditor/editor/dist/css/style.css'
 import { createEditor, createToolbar } from '@wangeditor/editor'
+import pinyin from 'js-pinyin'
 
 const router = useRouter()
 
@@ -281,16 +282,67 @@ const getToken = () => {
   return localStorage.getItem('token')
 }
 
+// 拼音匹配函数
+const matchWithPinyin = (text, searchTerm) => {
+  if (!text || !searchTerm) return false
+  
+  // 直接文本匹配（不区分大小写）
+  if (text.toLowerCase().includes(searchTerm)) {
+    return true
+  }
+  
+  // 拼音全拼匹配
+  try {
+    const fullPinyin = pinyin.getFullChars(text).toLowerCase()
+    if (fullPinyin.includes(searchTerm)) {
+      return true
+    }
+  } catch (e) {
+    // 忽略拼音转换错误
+  }
+  
+  // 拼音首字母匹配
+  try {
+    const firstLetters = pinyin.getCamelChars(text).toLowerCase()
+    if (firstLetters.includes(searchTerm)) {
+      return true
+    }
+  } catch (e) {
+    // 忽略拼音转换错误
+  }
+  
+  return false
+}
+
 // 获取资讯列表
 const fetchInformationList = async () => {
   loading.value = true
   try {
-    const response = await informationApi.getInformationList(queryParams)
+    // 获取所有资讯数据
+    const response = await informationApi.getInformationList()
     if (response && Array.isArray(response)) {
+      // 先设置原始数据
       informationList.value = response
-      // 补充教师名称信息
+      // 先补充教师名称信息
       await enrichInformationList()
-      total.value = response.length
+      
+      let filteredList = informationList.value
+      
+      // 根据标题和教师名称进行前端过滤（支持拼音匹配）
+      if (queryParams.infoTitle && queryParams.infoTitle.trim()) {
+        const searchTerm = queryParams.infoTitle.trim().toLowerCase()
+        filteredList = informationList.value.filter(item => {
+          // 搜索资讯标题
+          const titleMatch = matchWithPinyin(item.infoTitle, searchTerm)
+          // 搜索教师名称
+          const teacherMatch = matchWithPinyin(item.teaName, searchTerm)
+          // 只要标题或教师名称匹配就返回true
+          return titleMatch || teacherMatch
+        })
+      }
+      
+      informationList.value = filteredList
+      total.value = filteredList.length
       pages.value = Math.ceil(total.value / queryParams.pageSize)
     } else {
       informationList.value = []
@@ -750,6 +802,7 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 44px;
 }
 
 .info-meta {

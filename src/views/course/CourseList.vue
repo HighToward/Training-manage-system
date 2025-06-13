@@ -763,6 +763,7 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
+  align-items: stretch;
 }
 
 .course-card {
@@ -772,6 +773,7 @@ onMounted(() => {
   transition: all 0.3s ease;
   background: #ffffff;
   cursor: pointer;
+  height: 100%;
 }
 
 .course-card:hover {
@@ -801,6 +803,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
+  min-height: 48px;
 }
 
 .course-name {
@@ -811,6 +814,7 @@ onMounted(() => {
   flex: 1;
   margin-right: 12px;
   line-height: 1.4;
+  min-height: 44px;
 }
 
 .course-type {

@@ -13,9 +13,12 @@
     "@wangeditor/editor": "^5.1.23",
     "axios": "^1.4.0",
     "cropperjs": "^1.6.1",
+    "echarts": "^5.6.0",
     "element-plus": "^2.3.9",
+    "js-pinyin": "^0.2.7",
     "pinia": "^3.0.3",
     "vue": "^3.3.4",
+    "vue-echarts": "^7.0.3",
     "vue-picture-cropper": "^0.7.0",
     "vue-router": "^4.2.4"
   },

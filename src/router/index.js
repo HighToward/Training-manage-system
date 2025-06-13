@@ -10,10 +10,20 @@ const routes = [
       const token = localStorage.getItem('token');
       const isAuthenticated = token && token !== "null" && token !== "undefined";
       if (isAuthenticated) {
-        next('/course/list');
+        next('/dashboard');
       } else {
         next({ name: 'Login' });
       }
+    }
+  },
+  // 仪表盘路由
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('../views/Dashboard.vue'),
+    meta: { 
+      title: '仪表盘',
+      parentMenu: 'dashboard'
     }
   },
   {
@@ -92,6 +102,16 @@ const routes = [
       parentMenu: 'information-management'
     },
     props: true
+  },
+  // 问题管理路由组
+  {
+    path: '/question/list',
+    name: 'QuestionList',
+    component: () => import('../views/question/QuestionList.vue'),
+    meta: { 
+      title: '问题反馈',
+      parentMenu: 'question-management'
+    }
   },
   {
     path: '/login',
