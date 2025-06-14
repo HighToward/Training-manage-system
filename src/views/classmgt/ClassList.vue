@@ -153,6 +153,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { classApi } from '@/api'; // Ensure classApi is exported from your api/index.js
+import pinyin from 'js-pinyin';
 
 const router = useRouter();
 
@@ -180,12 +181,15 @@ const classRules = {
   className: [{ required: true, message: '请输入班级名称', trigger: 'blur' }],
 };
 
+// 存储所有班级数据用于前端筛选
+const allClasses = ref([]);
+
 const fetchClassList = async () => {
   loading.value = true;
   try {
-    const response = await classApi.getClassList(queryParams);
-    classList.value = response.list || [];
-    total.value = response.total || 0;
+    const response = await classApi.getClassList({ pageNum: 1, pageSize: 1000 }); // 获取所有数据
+    allClasses.value = response.list || [];
+    applyFilters();
   } catch (error) {
     ElMessage.error('获取班级列表失败');
     console.error(error);
@@ -194,11 +198,38 @@ const fetchClassList = async () => {
   }
 };
 
+// 应用筛选和分页
+const applyFilters = () => {
+  let filteredData = [...allClasses.value];
+  
+  // 班级名称搜索（支持拼音）
+  if (queryParams.className.trim()) {
+    const searchTerm = queryParams.className.toLowerCase();
+    filteredData = filteredData.filter(item => {
+      const className = item.className || '';
+      // 中文匹配
+      if (className.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      // 拼音匹配
+      const pinyinStr = pinyin.getFullChars(className).toLowerCase();
+      const pinyinAbbr = pinyin.getCamelChars(className).toLowerCase();
+      return pinyinStr.includes(searchTerm) || pinyinAbbr.includes(searchTerm);
+    });
+  }
+  
+  // 分页处理
+  total.value = filteredData.length;
+  const startIndex = (queryParams.pageNum - 1) * queryParams.pageSize;
+  const endIndex = startIndex + queryParams.pageSize;
+  classList.value = filteredData.slice(startIndex, endIndex);
+};
+
 onMounted(fetchClassList);
 
 const handleQuery = () => {
   queryParams.pageNum = 1;
-  fetchClassList();
+  applyFilters();
 };
 
 const handleClassNameClear = () => {
@@ -208,17 +239,19 @@ const handleClassNameClear = () => {
 const resetQuery = () => {
   queryFormRef.value?.resetFields();
   queryParams.className = ''; // Manual reset if resetFields doesn't cover it for non-prop items
-  handleQuery();
+  queryParams.pageNum = 1;
+  applyFilters();
 };
 
 const handleSizeChange = (val) => {
   queryParams.pageSize = val;
-  fetchClassList();
+  queryParams.pageNum = 1;
+  applyFilters();
 };
 
 const handleCurrentChange = (val) => {
   queryParams.pageNum = val;
-  fetchClassList();
+  applyFilters();
 };
 
 const resetForm = () => {

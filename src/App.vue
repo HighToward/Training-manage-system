@@ -30,10 +30,8 @@
         >
           <!-- 仪表盘 - 放在第一位 -->
           <el-menu-item index="/dashboard">
-            <template #title>
-              <el-icon><Odometer /></el-icon>
-              <span>仪表盘</span>
-            </template>
+            <el-icon><Odometer /></el-icon>
+            <span>仪表盘</span>
           </el-menu-item>
 
           <el-sub-menu index="course-management">
@@ -651,6 +649,31 @@ watch(isDarkMode, (newVal) => {
 
 .el-menu--collapse .el-menu-item {
   padding: 0 20px !important;
+  justify-content: center;
+}
+
+/* 确保菜单项图标和文本对齐 */
+.el-menu-vertical .el-menu-item .el-icon {
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
+}
+
+.el-menu-vertical .el-sub-menu__title .el-icon {
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
+}
+
+/* 折叠状态下隐藏文本，只显示图标 */
+.el-menu--collapse .el-menu-item span,
+.el-menu--collapse .el-sub-menu__title span {
+  display: none;
+}
+
+.el-menu--collapse .el-menu-item .el-icon,
+.el-menu--collapse .el-sub-menu__title .el-icon {
+  margin-right: 0;
 }
 </style>
 

@@ -114,6 +114,17 @@ const routes = [
     }
   },
   {
+    path: '/question/detail/:id',
+    name: 'QuestionDetail',
+    component: () => import('../views/question/QuestionDetail.vue'),
+    meta: { 
+      title: '问题详情',
+      parentTitle: '问题反馈',
+      parentMenu: 'question-management'
+    },
+    props: true
+  },
+  {
     path: '/login',
     name: 'Login',
     component: Login,

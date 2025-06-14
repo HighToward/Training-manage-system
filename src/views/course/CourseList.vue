@@ -10,28 +10,63 @@
           </div>
         </div>
         <div class="search-form">
-          <el-input 
-            v-model="queryParams.couName" 
-            placeholder="搜索课程名称..." 
-            clearable 
-            size="large"
-            class="search-input"
-            @keyup.enter="handleQuery"
-            @clear="handleCourseNameClear">
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-          <div class="search-actions">
-            <el-button type="primary" size="large" @click="handleQuery" class="search-btn">
-              <el-icon><Search /></el-icon>
-              搜索
-            </el-button>
-            <el-button size="large" @click="resetQuery" class="reset-btn">
-              <el-icon><Refresh /></el-icon>
-              重置
-            </el-button>
-          </div>
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-input 
+                v-model="queryParams.couName" 
+                placeholder="搜索课程名称..." 
+                clearable 
+                size="large"
+                class="search-input"
+                @keyup.enter="handleQuery"
+                @clear="handleCourseNameClear">
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+            </el-col>
+            <el-col :span="5">
+              <el-input 
+                v-model="queryParams.teaName" 
+                placeholder="搜索教师姓名..." 
+                clearable 
+                size="large"
+                @keyup.enter="handleQuery"
+                @clear="handleTeaNameClear">
+                <template #prefix>
+                  <el-icon><User /></el-icon>
+                </template>
+              </el-input>
+            </el-col>
+            <el-col :span="6">
+              <el-select 
+                v-model="queryParams.couTypeId" 
+                placeholder="课程类别" 
+                clearable 
+                size="large"
+                style="width: 100%"
+                @change="handleQuery">
+                <el-option label="全部类别" value="" />
+                <el-option 
+                  v-for="type in courseTypeOptions" 
+                  :key="type.id" 
+                  :label="type.typeName" 
+                  :value="type.id" />
+              </el-select>
+            </el-col>
+            <el-col :span="4">
+              <div class="search-actions">
+                <el-button type="primary" size="large" @click="handleQuery" class="search-btn">
+                  <el-icon><Search /></el-icon>
+                  搜索
+                </el-button>
+                <el-button size="large" @click="resetQuery" class="reset-btn">
+                  <el-icon><Refresh /></el-icon>
+                  重置
+                </el-button>
+              </div>
+            </el-col>
+          </el-row>
         </div>
       </el-card>
     </div>
@@ -296,12 +331,15 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { courseApi, teacherApi, fileUploadApi } from '@/api'
+import pinyin from 'js-pinyin'
 
 const router = useRouter()
 
 // 查询参数
 const queryParams = reactive({
   couName: '',
+  teaName: '',
+  couTypeId: '',
   couTypeIds: [],
   teaId: undefined,
   pageNum: 1,
@@ -311,6 +349,7 @@ const queryParams = reactive({
 // 表格数据
 const loading = ref(false)
 const courseList = ref([])
+const allCourses = ref([]) // 存储所有课程数据用于前端筛选
 const total = ref(0)
 const pages = ref(0)
 
@@ -359,26 +398,25 @@ const rules = {
 const fetchCourseList = async () => {
   loading.value = true
   try {
-    const response = await courseApi.getCourseList(queryParams)
-    if (response && response.list && typeof response.total === 'number' && typeof response.pages === 'number') {
-      courseList.value = response.list
+    const response = await courseApi.getCourseList({ pageNum: 1, pageSize: 1000 }) // 获取所有数据
+    if (response && response.list) {
+      allCourses.value = response.list
       // 补充教师头像信息
       await enrichCourseList()
-      total.value = response.total
-      pages.value = response.pages
+      applyFilters()
     } else {
       console.error('获取课程列表失败: 响应数据结构不正确或字段缺失', response)
       ElMessage.error('获取课程列表失败: 数据格式错误')
+      allCourses.value = []
       courseList.value = []
       total.value = 0
-      pages.value = 0
     }
   } catch (error) {
     console.error('获取课程列表失败 (catch block):', error)
     ElMessage.error((error && error.message) ? `获取课程列表失败: ${error.message}` : '获取课程列表失败: 未知错误')
+    allCourses.value = []
     courseList.value = []
     total.value = 0
-    pages.value = 0
   } finally {
     loading.value = false
   }
@@ -389,7 +427,7 @@ const enrichCourseList = async () => {
   try {
     const teachers = await teacherApi.getTeacherList()
     if (teachers && Array.isArray(teachers)) {
-      courseList.value.forEach(course => {
+      allCourses.value.forEach(course => {
         if (course.teaId) {
           const teacher = teachers.find(t => t.id === course.teaId)
           if (teacher) {
@@ -401,6 +439,56 @@ const enrichCourseList = async () => {
   } catch (error) {
     console.error('补充课程列表信息失败:', error)
   }
+}
+
+// 应用筛选和分页
+const applyFilters = () => {
+  let filteredData = [...allCourses.value]
+  
+  // 课程名称搜索（支持拼音）
+  if (queryParams.couName.trim()) {
+    const searchTerm = queryParams.couName.toLowerCase()
+    filteredData = filteredData.filter(item => {
+      const couName = item.couName || ''
+      // 中文匹配
+      if (couName.toLowerCase().includes(searchTerm)) {
+        return true
+      }
+      // 拼音匹配
+      const pinyinStr = pinyin.getFullChars(couName).toLowerCase()
+      const pinyinAbbr = pinyin.getCamelChars(couName).toLowerCase()
+      return pinyinStr.includes(searchTerm) || pinyinAbbr.includes(searchTerm)
+    })
+  }
+  
+  // 教师姓名搜索（支持拼音）
+  if (queryParams.teaName.trim()) {
+    const searchTerm = queryParams.teaName.toLowerCase()
+    filteredData = filteredData.filter(item => {
+      const teaName = item.teaName || ''
+      // 中文匹配
+      if (teaName.toLowerCase().includes(searchTerm)) {
+        return true
+      }
+      // 拼音匹配
+      const pinyinStr = pinyin.getFullChars(teaName).toLowerCase()
+      const pinyinAbbr = pinyin.getCamelChars(teaName).toLowerCase()
+      return pinyinStr.includes(searchTerm) || pinyinAbbr.includes(searchTerm)
+    })
+  }
+  
+  // 课程类别筛选
+  if (queryParams.couTypeId) {
+    filteredData = filteredData.filter(item => {
+      return item.couTypeIds && item.couTypeIds.includes(queryParams.couTypeId)
+    })
+  }
+  
+  // 分页处理
+  total.value = filteredData.length
+  const startIndex = (queryParams.pageNum - 1) * queryParams.pageSize
+  const endIndex = startIndex + queryParams.pageSize
+  courseList.value = filteredData.slice(startIndex, endIndex)
 }
 
 // 获取课程类型树
@@ -446,32 +534,43 @@ const fetchTeacherList = async () => {
 // 查询处理
 const handleQuery = () => {
   queryParams.pageNum = 1
-  fetchCourseList()
+  applyFilters()
 }
 
 // 处理课程名称清除事件
 const handleCourseNameClear = () => {
-  resetQuery()
+  queryParams.couName = ''
+  applyFilters()
+}
+
+// 处理教师姓名清除事件
+const handleTeaNameClear = () => {
+  queryParams.teaName = ''
+  applyFilters()
 }
 
 // 重置查询
 const resetQuery = () => {
   queryParams.couName = ''
+  queryParams.teaName = ''
+  queryParams.couTypeId = ''
   queryParams.couTypeIds = []
   queryParams.teaId = undefined
-  handleQuery()
+  queryParams.pageNum = 1
+  applyFilters()
 }
 
 // 分页大小变化
 const handleSizeChange = (val) => {
   queryParams.pageSize = val
-  fetchCourseList()
+  queryParams.pageNum = 1
+  applyFilters()
 }
 
 // 当前页变化
 const handleCurrentChange = (val) => {
   queryParams.pageNum = val
-  fetchCourseList()
+  applyFilters()
 }
 
 // 重置表单数据
@@ -709,9 +808,8 @@ onMounted(() => {
 
 .search-form {
   display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: flex-end;
-  flex-wrap: wrap;
 }
 
 .search-input {
@@ -730,7 +828,7 @@ onMounted(() => {
 
 /* 操作区域样式 */
 .action-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .action-header {

@@ -256,9 +256,11 @@ export const classApi = {
 export const studentApi = {
   // Method needed by ClassStudentManage.vue to get all students for selection
   getAllStudents: () => api.get('/student/all-active'), // Example endpoint, create in backend
-
+  
+  // 获取学生列表
+  getStudentList: (params) => api.get('/student/list', { params }),
+  
   // If you build a full student management CRUD:
-  // getStudentList: (params) => api.get('/student/list', { params }),
   // getStudentById: (id) => api.get(`/student/${id}`),
   // createStudent: (data) => api.post('/student', data),
   // updateStudent: (data) => api.put('/student', data),
@@ -370,9 +372,17 @@ export const questionApi = {
   adoptQuestion(id) {
     return api.put(`/topicQuestion/${id}/adopt`);
   },
+  // 取消采纳问题
+  cancelAdoptQuestion(id) {
+    return api.put(`/topicQuestion/${id}/cancel-adopt`);
+  },
   // 批量采纳问题
   batchAdoptQuestions(ids) {
     return api.put('/topicQuestion/batch-adopt', { ids });
+  },
+  // 不采纳问题
+  rejectQuestion(id) {
+    return api.put(`/topicQuestion/${id}/reject`);
   },
   // 点赞问题
   likeQuestion(qId, stuId) {
@@ -393,6 +403,10 @@ export const questionApi = {
   // 取消收藏问题
   uncollectQuestion(qId, stuId) {
     return api.delete(`/topicQuestion/${qId}/collect/${stuId}`);
+  },
+  // 获取问题图片
+  getQuestionImages(qId) {
+    return api.get(`/topicQuestion/${qId}/images`);
   },
   // 获取问题评论
   getCommentsByQuestionId(qId) {
@@ -417,6 +431,10 @@ export const questionApi = {
   // 采纳问题评论
   adoptQuestionComment(commentId) {
     return api.put(`/topicQuestion/comments/${commentId}/adopt`);
+  },
+  // 获取评论回复
+  getCommentReplies(commentId) {
+    return api.get(`/topicQuestion/comments/${commentId}/replies`);
   }
 };
 

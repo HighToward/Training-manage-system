@@ -25,7 +25,7 @@
                 </template>
               </el-input>
             </el-col>
-            <el-col :span="6">
+            <el-col :span="3" >
               <el-select 
                 v-model="queryParams.questionType" 
                 placeholder="问题类型" 
@@ -40,7 +40,7 @@
                   :value="type" />
               </el-select>
             </el-col>
-            <el-col :span="6">
+            <el-col :span="3">
               <el-select 
                 v-model="queryParams.hasAdopt" 
                 placeholder="采纳状态" 
@@ -50,6 +50,7 @@
                 <el-option label="全部状态" value="" />
                 <el-option label="已采纳" :value="1" />
                 <el-option label="未采纳" :value="0" />
+                <el-option label="不采纳" :value="2" />
               </el-select>
             </el-col>
             <el-col :span="4">
@@ -113,7 +114,7 @@
               <el-avatar :size="32" class="student-avatar">
                 <el-icon><User /></el-icon>
               </el-avatar>
-              <span class="student-name">学生ID: {{ scope.row.stuId }}</span>
+              <span class="student-name">{{ scope.row.stuName || '未知学生' }}</span>
             </div>
           </template>
         </el-table-column>
@@ -137,26 +138,57 @@
         </el-table-column>
         <el-table-column label="采纳状态" width="100">
           <template #default="scope">
-            <el-tag :type="scope.row.hasAdopt ? 'success' : 'warning'" size="small">
-              {{ scope.row.hasAdopt ? '已采纳' : '未采纳' }}
+            <el-tag 
+              :type="scope.row.hasAdopt === 1 ? 'success' : scope.row.hasAdopt === 2 ? 'danger' : 'warning'" 
+              size="small">
+              {{ scope.row.hasAdopt === 1 ? '已采纳' : scope.row.hasAdopt === 2 ? '不采纳' : '未采纳' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="350" fixed="right">
           <template #default="scope">
             <div class="action-buttons">
               <el-button type="primary" size="small" @click="handleViewDetail(scope.row)">
                 <el-icon><View /></el-icon>
                 查看
               </el-button>
-              <el-button 
-                v-if="!scope.row.hasAdopt" 
-                type="success" 
-                size="small" 
-                @click="handleAdopt(scope.row)">
-                <el-icon><Check /></el-icon>
-                采纳
-              </el-button>
+              <!-- 未采纳状态：显示采纳和不采纳按钮 -->
+              <template v-if="scope.row.hasAdopt === 0">
+                <el-button 
+                  type="success" 
+                  size="small" 
+                  @click="handleAdopt(scope.row)">
+                  <el-icon><Check /></el-icon>
+                  采纳
+                </el-button>
+                <el-button 
+                  type="warning" 
+                  size="small" 
+                  @click="handleReject(scope.row)">
+                  <el-icon><Close /></el-icon>
+                  不采纳
+                </el-button>
+              </template>
+              <!-- 已采纳状态：显示取消采纳按钮 -->
+              <template v-else-if="scope.row.hasAdopt === 1">
+                <el-button 
+                  type="info" 
+                  size="small" 
+                  @click="handleCancelAdopt(scope.row)">
+                  <el-icon><RefreshLeft /></el-icon>
+                  取消采纳
+                </el-button>
+              </template>
+              <!-- 不采纳状态：显示重新采纳按钮 -->
+              <template v-else-if="scope.row.hasAdopt === 2">
+                <el-button 
+                  type="success" 
+                  size="small" 
+                  @click="handleAdopt(scope.row)">
+                  <el-icon><Check /></el-icon>
+                  重新采纳
+                </el-button>
+              </template>
               <el-button type="danger" size="small" @click="handleDelete(scope.row)">
                 <el-icon><Delete /></el-icon>
                 删除
@@ -201,8 +233,10 @@
             </div>
           </div>
           <div class="question-status">
-            <el-tag :type="currentQuestion.hasAdopt ? 'success' : 'warning'" size="large">
-              {{ currentQuestion.hasAdopt ? '已采纳' : '未采纳' }}
+            <el-tag 
+              :type="currentQuestion.hasAdopt === 1 ? 'success' : currentQuestion.hasAdopt === 2 ? 'danger' : 'warning'" 
+              size="large">
+              {{ currentQuestion.hasAdopt === 1 ? '已采纳' : currentQuestion.hasAdopt === 2 ? '不采纳' : '未采纳' }}
             </el-tag>
           </div>
         </div>
@@ -237,13 +271,39 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="detailDialogVisible = false">关闭</el-button>
-          <el-button 
-            v-if="currentQuestion && !currentQuestion.hasAdopt" 
-            type="success" 
-            @click="handleAdoptInDetail">
-            <el-icon><Check /></el-icon>
-            采纳问题
-          </el-button>
+          <!-- 未采纳状态：显示采纳和不采纳按钮 -->
+          <template v-if="currentQuestion && currentQuestion.hasAdopt === 0">
+            <el-button 
+              type="success" 
+              @click="handleAdoptInDetail">
+              <el-icon><Check /></el-icon>
+              采纳问题
+            </el-button>
+            <el-button 
+              type="warning" 
+              @click="handleRejectInDetail">
+              <el-icon><Close /></el-icon>
+              不采纳
+            </el-button>
+          </template>
+          <!-- 已采纳状态：显示取消采纳按钮 -->
+          <template v-else-if="currentQuestion && currentQuestion.hasAdopt === 1">
+            <el-button 
+              type="info" 
+              @click="handleCancelAdoptInDetail">
+              <el-icon><RefreshLeft /></el-icon>
+              取消采纳
+            </el-button>
+          </template>
+          <!-- 不采纳状态：显示重新采纳按钮 -->
+          <template v-else-if="currentQuestion && currentQuestion.hasAdopt === 2">
+            <el-button 
+              type="success" 
+              @click="handleAdoptInDetail">
+              <el-icon><Check /></el-icon>
+              重新采纳
+            </el-button>
+          </template>
         </div>
       </template>
     </el-dialog>
@@ -259,13 +319,16 @@ import {
   Check, 
   Delete, 
   View, 
+  Edit, 
   User, 
   ChatDotRound, 
   Star, 
-  Collection 
+  Collection,
+  Close,
+  RefreshLeft
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-import { questionApi } from '@/api'
+import { questionApi, studentApi } from '@/api'
 import pinyin from 'js-pinyin'
 
 const router = useRouter()
@@ -308,6 +371,8 @@ const getQuestionList = async () => {
     // 获取所有问题数据
     const data = await questionApi.getQuestionList()
     allQuestions.value = data || []
+    // 补充学生姓名信息
+    await enrichQuestionList()
     // 应用筛选
     applyFilters()
   } catch (error) {
@@ -315,6 +380,32 @@ const getQuestionList = async () => {
     ElMessage.error(error.message || '获取问题列表失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 补充问题列表的学生姓名信息
+const enrichQuestionList = async () => {
+  try {
+    // 获取学生列表
+    const response = await studentApi.getAllStudents()
+    let students = response
+    
+    // 如果返回的是分页数据，提取list
+    if (response && response.list) {
+      students = response.list
+    }
+    
+    if (students && Array.isArray(students)) {
+      // 为每个问题添加学生姓名
+      allQuestions.value.forEach(question => {
+        const student = students.find(s => s.id === question.stuId)
+        if (student) {
+          question.stuName = student.stuName || student.name
+        }
+      })
+    }
+  } catch (error) {
+    console.error('获取学生信息失败:', error)
   }
 }
 
@@ -395,8 +486,8 @@ const handleSelectionChange = (selection) => {
 
 // 查看详情
 const handleViewDetail = (row) => {
-  currentQuestion.value = row
-  detailDialogVisible.value = true
+  // 跳转到问题详情页
+  router.push(`/question/detail/${row.id}`)
 }
 
 // 采纳问题
@@ -427,6 +518,22 @@ const handleAdoptInDetail = async () => {
   }
 }
 
+// 详情中取消采纳
+const handleCancelAdoptInDetail = async () => {
+  await handleCancelAdopt(currentQuestion.value)
+  if (currentQuestion.value) {
+    currentQuestion.value.hasAdopt = 0
+  }
+}
+
+// 详情中不采纳
+const handleRejectInDetail = async () => {
+  await handleReject(currentQuestion.value)
+  if (currentQuestion.value) {
+    currentQuestion.value.hasAdopt = 2
+  }
+}
+
 // 批量采纳
 const handleBatchAdopt = async () => {
   if (selectedQuestions.value.length === 0) {
@@ -449,6 +556,46 @@ const handleBatchAdopt = async () => {
     if (error !== 'cancel') {
       console.error('批量采纳失败:', error)
       ElMessage.error('批量采纳失败')
+    }
+  }
+}
+
+// 取消采纳
+const handleCancelAdopt = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定要取消采纳这个问题吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    await questionApi.cancelAdoptQuestion(row.id)
+    ElMessage.success('取消采纳成功')
+    getQuestionList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('取消采纳失败:', error)
+      ElMessage.error('取消采纳失败')
+    }
+  }
+}
+
+// 不采纳问题
+const handleReject = async (row) => {
+  try {
+    await ElMessageBox.confirm('确定不采纳这个问题吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    await questionApi.rejectQuestion(row.id)
+    ElMessage.success('已标记为不采纳')
+    getQuestionList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('不采纳操作失败:', error)
+      ElMessage.error('不采纳失败')
     }
   }
 }
@@ -591,7 +738,6 @@ onMounted(() => {
 
 .action-buttons {
   display: flex;
-  gap: 12px;
 }
 
 /* 问题列表样式优化 */

@@ -531,7 +531,7 @@ const getQuotedCommentTime = (commentId) => {
 // 获取被引用评论的内容
 const getQuotedCommentContent = (commentId) => {
   const comment = commentList.value.find(c => c.id === commentId)
-  if (!comment) return '该评论已被删除'
+  if (!comment) return '该用户已删除评论。'
   // 如果内容过长，进行截断
   const content = comment.content || ''
   return content.length > 50 ? content.substring(0, 50) + '...' : content
@@ -1103,63 +1103,75 @@ onUnmounted(() => {
 
 /* 评论中的引用内容样式 */
 .comment-quote {
-  background: var(--el-fill-color-extra-light);
-  border: 1px solid var(--el-border-color-lighter);
+  margin-bottom: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-fill-color-lighter) 100%);
+  border: 1px solid var(--el-color-primary-light-7);
+  border-left: 4px solid var(--el-color-primary);
   border-radius: 8px;
-  padding: 10px;
-  margin: 8px 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .comment-quote:hover {
   border-color: var(--el-color-primary-light-5);
-  background: var(--el-color-primary-light-9);
+  background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-fill-color-light) 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .quote-indicator {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 6px;
-  font-size: 11px;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
   color: var(--el-color-primary);
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.quote-indicator .el-icon {
+  font-size: 14px;
 }
 
 .quoted-comment {
-  background: var(--el-bg-color);
+  background: rgba(255, 255, 255, 0.8);
   border-radius: 6px;
-  padding: 8px;
+  padding: 10px;
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .quoted-user-info {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .quoted-username {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--el-color-primary);
 }
 
 .quoted-time {
   font-size: 11px;
   color: var(--el-text-color-placeholder);
+  margin-left: auto;
 }
 
 .quoted-text {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--el-text-color-regular);
-  line-height: 1.4;
-  max-height: 32px;
+  line-height: 1.5;
+  font-style: italic;
+  max-height: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 

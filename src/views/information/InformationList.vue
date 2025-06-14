@@ -10,28 +10,47 @@
           </div>
         </div>
         <div class="search-form">
-          <el-input 
-            v-model="queryParams.infoTitle" 
-            placeholder="搜索资讯标题或发布人..." 
-            clearable 
-            size="large"
-            class="search-input"
-            @keyup.enter="handleQuery"
-            @clear="handleInfoTitleClear">
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-          <div class="search-actions">
-            <el-button type="primary" size="large" @click="handleQuery" class="search-btn">
-              <el-icon><Search /></el-icon>
-              搜索
-            </el-button>
-            <el-button size="large" @click="resetQuery" class="reset-btn">
-              <el-icon><Refresh /></el-icon>
-              重置
-            </el-button>
-          </div>
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-input 
+                v-model="queryParams.infoTitle" 
+                placeholder="搜索资讯标题..." 
+                clearable 
+                size="large"
+                class="search-input"
+                @keyup.enter="handleQuery"
+                @clear="handleInfoTitleClear">
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+            </el-col>
+            <el-col :span="5">
+              <el-input 
+                v-model="queryParams.teaName" 
+                placeholder="搜索发布人..." 
+                clearable 
+                size="large"
+                @keyup.enter="handleQuery"
+                @clear="handleTeaNameClear">
+                <template #prefix>
+                  <el-icon><User /></el-icon>
+                </template>
+              </el-input>
+            </el-col>
+            <el-col :span="5">
+              <div class="search-actions">
+                <el-button type="primary" size="large" @click="handleQuery" class="search-btn">
+                  <el-icon><Search /></el-icon>
+                  搜索
+                </el-button>
+                <el-button size="large" @click="resetQuery" class="reset-btn">
+                  <el-icon><Refresh /></el-icon>
+                  重置
+                </el-button>
+              </div>
+            </el-col>
+          </el-row>
         </div>
       </el-card>
     </div>
@@ -218,7 +237,7 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, User, Calendar, Picture } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, User, Calendar, Picture, ChatDotRound } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { informationApi, teacherApi } from '@/api'
 import '@wangeditor/editor/dist/css/style.css'
@@ -230,9 +249,13 @@ const router = useRouter()
 // 查询参数
 const queryParams = reactive({
   infoTitle: '',
+  teaName: '',
   pageNum: 1,
   pageSize: 12
 })
+
+// 存储所有资讯数据
+const allInformations = ref([])
 
 // 表格数据
 const loading = ref(false)
@@ -322,29 +345,13 @@ const fetchInformationList = async () => {
     const response = await informationApi.getInformationList()
     if (response && Array.isArray(response)) {
       // 先设置原始数据
-      informationList.value = response
+      allInformations.value = response
       // 先补充教师名称信息
       await enrichInformationList()
-      
-      let filteredList = informationList.value
-      
-      // 根据标题和教师名称进行前端过滤（支持拼音匹配）
-      if (queryParams.infoTitle && queryParams.infoTitle.trim()) {
-        const searchTerm = queryParams.infoTitle.trim().toLowerCase()
-        filteredList = informationList.value.filter(item => {
-          // 搜索资讯标题
-          const titleMatch = matchWithPinyin(item.infoTitle, searchTerm)
-          // 搜索教师名称
-          const teacherMatch = matchWithPinyin(item.teaName, searchTerm)
-          // 只要标题或教师名称匹配就返回true
-          return titleMatch || teacherMatch
-        })
-      }
-      
-      informationList.value = filteredList
-      total.value = filteredList.length
-      pages.value = Math.ceil(total.value / queryParams.pageSize)
+      // 应用过滤
+      applyFilters()
     } else {
+      allInformations.value = []
       informationList.value = []
       total.value = 0
       pages.value = 0
@@ -352,6 +359,7 @@ const fetchInformationList = async () => {
   } catch (error) {
     console.error('获取资讯列表失败:', error)
     ElMessage.error('获取资讯列表失败')
+    allInformations.value = []
     informationList.value = []
     total.value = 0
     pages.value = 0
@@ -360,12 +368,42 @@ const fetchInformationList = async () => {
   }
 }
 
+// 应用过滤和分页
+const applyFilters = () => {
+  let filteredList = [...allInformations.value]
+  
+  // 根据资讯标题进行过滤（支持拼音匹配）
+  if (queryParams.infoTitle && queryParams.infoTitle.trim()) {
+    const searchTerm = queryParams.infoTitle.trim().toLowerCase()
+    filteredList = filteredList.filter(item => {
+      return matchWithPinyin(item.infoTitle, searchTerm)
+    })
+  }
+  
+  // 根据教师名称进行过滤（支持拼音匹配）
+  if (queryParams.teaName && queryParams.teaName.trim()) {
+    const searchTerm = queryParams.teaName.trim().toLowerCase()
+    filteredList = filteredList.filter(item => {
+      return matchWithPinyin(item.teaName, searchTerm)
+    })
+  }
+  
+  // 更新总数
+  total.value = filteredList.length
+  pages.value = Math.ceil(total.value / queryParams.pageSize)
+  
+  // 分页处理
+  const startIndex = (queryParams.pageNum - 1) * queryParams.pageSize
+  const endIndex = startIndex + queryParams.pageSize
+  informationList.value = filteredList.slice(startIndex, endIndex)
+}
+
 // 补充资讯列表信息（教师名称和头像）
 const enrichInformationList = async () => {
   try {
     const teachers = await teacherApi.getTeacherList()
     if (teachers && Array.isArray(teachers)) {
-      informationList.value.forEach(info => {
+      allInformations.value.forEach(info => {
         if (info.teaId && !info.teaName) {
           const teacher = teachers.find(t => t.id === info.teaId)
           if (teacher) {
@@ -377,7 +415,7 @@ const enrichInformationList = async () => {
     }
     
     // 获取每个资讯的评论数
-    for (const info of informationList.value) {
+    for (const info of allInformations.value) {
       try {
         const comments = await informationApi.getCommentsByInfoId(info.id)
         info.commentCount = comments ? comments.length : 0
@@ -406,31 +444,39 @@ const fetchTeacherList = async () => {
 // 查询处理
 const handleQuery = () => {
   queryParams.pageNum = 1
-  fetchInformationList()
+  applyFilters()
 }
 
 // 处理资讯标题清除事件
 const handleInfoTitleClear = () => {
-  resetQuery()
+  queryParams.infoTitle = ''
+  applyFilters()
+}
+
+// 处理教师姓名清除事件
+const handleTeaNameClear = () => {
+  queryParams.teaName = ''
+  applyFilters()
 }
 
 // 重置查询
 const resetQuery = () => {
   queryParams.infoTitle = ''
+  queryParams.teaName = ''
   queryParams.pageNum = 1
-  fetchInformationList()
+  applyFilters()
 }
 
 // 分页处理
 const handleSizeChange = (val) => {
   queryParams.pageSize = val
   queryParams.pageNum = 1
-  fetchInformationList()
+  applyFilters()
 }
 
 const handleCurrentChange = (val) => {
   queryParams.pageNum = val
-  fetchInformationList()
+  applyFilters()
 }
 
 // 格式化日期
@@ -689,9 +735,8 @@ onMounted(() => {
 
 .search-form {
   display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: flex-end;
-  flex-wrap: wrap;
 }
 
 .search-input {
