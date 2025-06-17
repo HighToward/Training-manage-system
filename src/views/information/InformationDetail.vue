@@ -2,6 +2,19 @@
   <div class="information-detail-container">
     <!-- 文章主体卡片 -->
     <el-card class="article-card" v-loading="loading">
+      <!-- 封面图片 -->
+      <div class="article-cover" v-if="informationDetail.infoImage">
+        <el-image
+          :src="informationDetail.infoImage"
+          :preview-src-list="[informationDetail.infoImage]"
+          :preview-teleported="true"
+          :z-index="3000"
+          fit="cover"
+          class="cover-image"
+          hide-on-click-modal
+        />
+      </div>
+
       <!-- 文章头部 -->
       <div class="article-header">
         <h1 class="article-title">{{ informationDetail.infoTitle }}</h1>
@@ -19,6 +32,14 @@
                 <span class="comment-count">
                   <el-icon><ChatDotRound /></el-icon>
                   {{ informationDetail.infoComment || 0 }} 条评论
+                </span>
+                <span class="like-count">
+                  <el-icon><Star /></el-icon>
+                  {{ informationDetail.infoLike || 0 }} 点赞
+                </span>
+                <span class="collection-count">
+                  <el-icon><Collection /></el-icon>
+                  {{ informationDetail.infoCollection || 0 }} 收藏
                 </span>
                 <span class="publish-time">{{ formatDate(informationDetail.createTime) }}</span>
               </div>
@@ -42,23 +63,12 @@
         </div>
       </div>
 
-      <!-- 封面图片 -->
-      <div class="article-cover" v-if="informationDetail.infoImage">
-        <el-image
-          :src="informationDetail.infoImage"
-          :preview-src-list="[informationDetail.infoImage]"
-          :preview-teleported="true"
-          :z-index="3000"
-          fit="cover"
-          class="cover-image"
-          hide-on-click-modal
-        />
-      </div>
-
       <!-- 文章内容 -->
       <div class="article-content">
         <div class="content" v-html="informationDetail.infoMain"></div>
       </div>
+
+
     </el-card>
 
     <!-- 评论区卡片 -->
@@ -129,6 +139,7 @@
           <div class="comment-content">
             <div class="comment-header">
               <span class="commenter-name">{{ comment.userName || '匿名用户' }}</span>
+              <el-tag v-if="isTeacherComment(comment)" type="primary" size="small" class="teacher-tag">老师</el-tag>
               <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
             </div>
             
@@ -144,6 +155,7 @@
                     <el-icon><User /></el-icon>
                   </el-avatar>
                   <span class="quoted-username">{{ getQuotedUserName(comment.parentCommentsId) }}</span>
+                  <el-tag v-if="isQuotedTeacherComment(comment.parentCommentsId)" type="primary" size="small" class="teacher-tag-small">老师</el-tag>
                   <span class="quoted-time">{{ formatDate(getQuotedCommentTime(comment.parentCommentsId)) }}</span>
                 </div>
                 <div class="quoted-text">{{ getQuotedCommentContent(comment.parentCommentsId) }}</div>
@@ -152,6 +164,10 @@
             
             <div class="comment-text">{{ comment.content }}</div>
             <div class="comment-actions">
+              <span class="comment-like-count">
+                <el-icon><Star /></el-icon>
+                点赞 ({{ comment.likeCount || 0 }})
+              </span>
               <el-button text size="small" @click="handleReply(comment)"
                           class="comment-reply">
                 <el-icon><ChatDotRound /></el-icon>
@@ -263,8 +279,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, Back, Picture, User, Star, Delete, Plus, ArrowLeft, ChatDotRound, Close } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { Edit, Back, Picture, User, Star, Delete, Plus, ArrowLeft, ChatDotRound, Close, Collection } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { informationApi, teacherApi } from '@/api'
 import '@wangeditor/editor/dist/css/style.css'
@@ -380,13 +396,21 @@ const enrichInformationDetail = async () => {
   }
 }
 
+
+
 // 获取评论列表
 const fetchCommentList = async () => {
   commentsLoading.value = true
   try {
     const response = await informationApi.getCommentsByInfoId(route.params.id)
     if (response && Array.isArray(response)) {
-      commentList.value = response
+
+      // 为每个评论添加点赞数
+      const commentsWithLikeCount = response.map(comment => ({
+        ...comment,
+        likeCount: comment.infoLikeNum || 0
+      }))
+      commentList.value = commentsWithLikeCount
     } else {
       commentList.value = []
     }
@@ -429,30 +453,9 @@ const handleAddComment = async () => {
   }
 }
 
-// 点赞评论
-const handleLikeComment = async (comment) => {
-  if (comment.userId === currentUserId.value) {
-    ElMessage.warning('不能为自己的评论点赞')
-    return
-  }
-  
-  try {
-    if (comment.isLiked) {
-      await informationApi.unlikeComment(comment.id, currentUserId.value)
-      comment.isLiked = false
-      comment.infoLikeNum = Math.max(0, (comment.infoLikeNum || 0) - 1)
-      ElMessage.success('取消点赞成功')
-    } else {
-      await informationApi.likeComment(comment.id, currentUserId.value)
-      comment.isLiked = true
-      comment.infoLikeNum = (comment.infoLikeNum || 0) + 1
-      ElMessage.success('点赞成功')
-    }
-  } catch (error) {
-    console.error('点赞操作失败:', error)
-    ElMessage.error('点赞操作失败')
-  }
-}
+
+
+
 
 // 删除评论
 const handleDeleteComment = async (commentId) => {
@@ -526,6 +529,36 @@ const getQuotedUserName = (commentId) => {
 const getQuotedCommentTime = (commentId) => {
   const comment = commentList.value.find(c => c.id === commentId)
   return comment ? comment.createTime : ''
+}
+
+// 判断评论是否为教师发表
+const isTeacherComment = (comment) => {
+  // 方法1: 通过用户名判断（如果用户名包含"教授"、"老师"等关键词）
+  if (comment.userName && (comment.userName.includes('教授') || comment.userName.includes('老师'))) {
+    return true
+  }
+  
+  // 方法2: 如果有teaId字段且不为空
+  if (comment.teaId) {
+    return true
+  }
+  
+  // 方法3: 通过userId判断（需要获取当前用户信息）
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+  const userType = localStorage.getItem('userType')
+  
+  // 如果当前用户是教师且评论的userId与当前用户ID匹配
+  if (userType === 'teacher' && comment.userId === userInfo.id) {
+    return true
+  }
+  
+  return false
+}
+
+// 判断引用的评论是否为教师发表
+const isQuotedTeacherComment = (commentId) => {
+  const comment = commentList.value.find(c => c.id === commentId)
+  return comment ? isTeacherComment(comment) : false
 }
 
 // 获取被引用评论的内容
@@ -798,12 +831,25 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 
-.comment-count {
+.comment-count,
+.like-count,
+.collection-count {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #409eff;
   font-size: 14px;
+}
+
+.comment-count {
+  color: #409eff;
+}
+
+.like-count {
+  color: #f56c6c;
+}
+
+.collection-count {
+  color: #e6a23c;
 }
 
 .comment-count .el-icon {
@@ -915,6 +961,63 @@ onUnmounted(() => {
   border-radius: 8px;
   overflow-x: auto;
   margin: 16px 0;
+}
+
+/* 文章操作区样式 */
+.article-actions {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e4e7ed;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.action-button {
+  min-width: 120px;
+  height: 40px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.like-button.el-button--primary {
+  background: linear-gradient(135deg, #f56c6c, #ff8a80);
+  border: none;
+}
+
+.like-button.el-button--primary:hover {
+  background: linear-gradient(135deg, #f78989, #ffab91);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.4);
+}
+
+.collect-button.el-button--warning {
+  background: linear-gradient(135deg, #e6a23c, #ffb74d);
+  border: none;
+}
+
+.collect-button.el-button--warning:hover {
+  background: linear-gradient(135deg, #edb563, #ffcc80);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.4);
+}
+
+.action-button.el-button--default {
+  border: 2px solid #dcdfe6;
+  background: #fff;
+  color: #606266;
+}
+
+.action-button.el-button--default:hover {
+  border-color: #409eff;
+  color: #409eff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
 }
 
 /* 评论区卡片 */
@@ -1185,6 +1288,20 @@ onUnmounted(() => {
 .comment-actions {
   display: flex;
   gap: 8px;
+  margin-top: 8px;
+}
+
+.comment-like-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #909399;
+  padding: 4px 8px;
+}
+
+.comment-like-count .el-icon {
+  color: #f56c6c;
 }
 
 .comment-reply,
@@ -1370,51 +1487,348 @@ onUnmounted(() => {
   z-index: 3000 !important;
 }
 
-[data-theme="dark"] .breadcrumb-card,
-[data-theme="dark"] .article-card,
+/* 深色模式下的主容器样式 */
+[data-theme="dark"] .information-detail-container {
+  background: transparent !important;
+  color: #e5eaf3 !important;
+}
+
+/* 深色模式下的卡片样式 */
+[data-theme="dark"] .article-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
 [data-theme="dark"] .comments-card {
-  background-color: var(--el-bg-color);
-  border-color: var(--el-border-color);
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 深色模式下的文章头部样式 */
+[data-theme="dark"] .article-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 [data-theme="dark"] .article-title {
-  color: #e2e8f0 !important;
+  color: #e5eaf3 !important;
 }
+
 [data-theme="dark"] .author-name {
-  color: #e2e8f0 !important; 
+  color: #e5eaf3 !important;
 }
+
+[data-theme="dark"] .comment-count {
+  color: #79bbff !important;
+}
+
+[data-theme="dark"] .comment-count .el-icon {
+  color: #79bbff !important;
+}
+
 [data-theme="dark"] .publish-time {
-  color: #cbd5e0!important;
+  color: #a3a6ad !important;
 }
+
+/* 深色模式下的头像样式 */
+[data-theme="dark"] .author-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 深色模式下的封面图片样式 */
+[data-theme="dark"] .article-cover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 深色模式下的文章内容样式 */
 [data-theme="dark"] .content {
-  color: #e2e8f0 !important;
-}
-[data-theme="dark"] a {
-  color: #e2e8f0 !important;
+  color: #e5eaf3 !important;
 }
 
+[data-theme="dark"] .content :deep(p) {
+  color: #e5eaf3 !important;
+}
 
+[data-theme="dark"] .content :deep(blockquote) {
+  background: rgba(64, 158, 255, 0.1) !important;
+  border-left: 4px solid #79bbff !important;
+  color: #e5eaf3 !important;
+}
+
+[data-theme="dark"] .content :deep(code) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #e5eaf3 !important;
+}
+
+[data-theme="dark"] .content :deep(pre) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #e5eaf3 !important;
+}
+
+[data-theme="dark"] .content :deep(img) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 深色模式下的评论区标题样式 */
 [data-theme="dark"] .comments-title {
-  color: #e2e8f0 !important;
-}
-[data-theme="dark"] .comment-text {
-  color: #cbd5e0 !important;
+  color: #e5eaf3 !important;
 }
 
-[data-theme="dark"] .comment-textarea {
-  background: #415066 !important;
+[data-theme="dark"] .title-icon {
+  color: #79bbff !important;
+}
+
+[data-theme="dark"] .comment-count {
+  color: #a3a6ad !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 深色模式下的评论表单样式 */
+[data-theme="dark"] .comment-form-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .comment-textarea :deep(.el-textarea__inner) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #e5eaf3 !important;
+}
+
+[data-theme="dark"] .comment-textarea :deep(.el-textarea__inner):focus {
+  border-color: #79bbff !important;
+}
+
+[data-theme="dark"] .comment-textarea :deep(.el-textarea__inner)::placeholder {
+  color: #a3a6ad !important;
+}
+
+/* 深色模式下的引用框样式 */
+[data-theme="dark"] .quote-box {
+  background: rgba(64, 158, 255, 0.1) !important;
+  border: 1px solid rgba(64, 158, 255, 0.3) !important;
+}
+
+[data-theme="dark"] .quote-label {
+  color: #79bbff !important;
+}
+
+[data-theme="dark"] .cancel-reply {
+  color: #a3a6ad !important;
+}
+
+[data-theme="dark"] .cancel-reply:hover {
+  color: #f89898 !important;
+}
+
+[data-theme="dark"] .quote-content {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .quote-username {
+  color: #e5eaf3 !important;
+}
+
+[data-theme="dark"] .quote-time {
+  color: #a3a6ad !important;
+}
+
+[data-theme="dark"] .quote-text {
+  color: #c0c4cc !important;
+}
+
+/* 深色模式下的评论列表样式 */
+[data-theme="dark"] .comment-item-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .comment-item-card:hover {
+  border-color: #79bbff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .comment-item-card.highlight-comment {
+  border-color: #79bbff !important;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3) !important;
+  background: rgba(64, 158, 255, 0.1) !important;
 }
 
 [data-theme="dark"] .commenter-name {
-  color: #cbd5e0 !important;
-}
-[data-theme="dark"] .comment-reply {
-  color: #cbd5e0 !important;
+  color: #e5eaf3 !important;
 }
 
-[data-theme="dark"] .comment-form-card,
-[data-theme="dark"] .comment-item-card {
-  background: #415066;
+[data-theme="dark"] .comment-time {
+  color: #a3a6ad !important;
+}
+
+/* 深色模式下的评论引用内容样式 */
+[data-theme="dark"] .comment-quote {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+  border: 1px solid rgba(64, 158, 255, 0.3) !important;
+  border-left: 4px solid #79bbff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"] .comment-quote:hover {
+  border-color: #79bbff !important;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .quote-indicator {
+  color: #79bbff !important;
+}
+
+[data-theme="dark"] .quoted-comment {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .quoted-username {
+  color: #79bbff !important;
+}
+
+[data-theme="dark"] .quoted-time {
+  color: #a3a6ad !important;
+}
+
+[data-theme="dark"] .quoted-text {
+  color: #c0c4cc !important;
+}
+
+[data-theme="dark"] .comment-text {
+  color: #c0c4cc !important;
+}
+
+/* 深色模式下的评论操作按钮样式 */
+[data-theme="dark"] .comment-reply:hover {
+  color: #79bbff !important;
+  background-color: rgba(64, 158, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .comment-delete:hover {
+  color: #f89898 !important;
+  background-color: rgba(245, 108, 108, 0.1) !important;
+}
+
+/* 深色模式下的无评论状态样式 */
+[data-theme="dark"] .no-comments {
+  color: #a3a6ad !important;
+}
+
+[data-theme="dark"] .no-comments-icon {
+  color: #73767a !important;
+}
+
+[data-theme="dark"] .no-comments p {
+  color: #a3a6ad !important;
+}
+
+/* 深色模式下的按钮样式 */
+[data-theme="dark"] .el-button {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .el-button--primary {
+  background: #79bbff !important;
+  border-color: #79bbff !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .el-button--success {
+  background: #95d475 !important;
+  border-color: #95d475 !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .el-button--danger {
+  background: #f89898 !important;
+  border-color: #f89898 !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .el-button--warning {
+  background: #f7ba2a !important;
+  border-color: #f7ba2a !important;
+  color: #1a1a1a !important;
+}
+
+/* 深色模式下的头像样式 */
+[data-theme="dark"] .el-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 深色模式下的编辑器样式 */
+[data-theme="dark"] .editor-container {
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .toolbar-container {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .image-uploader {
+  border: 1px dashed rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme="dark"] .image-uploader:hover {
+  border-color: #79bbff !important;
+}
+
+[data-theme="dark"] .image-uploader-icon {
+  color: #a3a6ad !important;
+}
+
+/* 统计区域样式 */
+.stats-area {
+  display: flex;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid #e4e7ed;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.stat-item .el-icon {
+  font-size: 16px;
+}
+
+[data-theme="dark"] .stats-area {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .stat-item {
+  color: #a3a6ad;
+}
+
+[data-theme="dark"] .comment-like-count {
+  color: #a3a6ad;
+}
+
+/* 教师标签样式 */
+.teacher-tag {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.teacher-tag-small {
+  margin-left: 4px;
+  font-size: 10px;
+  transform: scale(0.8);
+}
+
+[data-theme="dark"] .comment-like-count .el-icon {
+  color: #f89898;
 }
 
 </style>

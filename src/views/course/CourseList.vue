@@ -78,15 +78,35 @@
           <h2>课程管理</h2>
           <p class="subtitle">共 {{ total }} 门课程</p>
         </div>
-        <el-button type="primary" size="large" @click="handleAdd" class="add-btn">
-          <el-icon><Plus /></el-icon>
-          新建课程
-        </el-button>
+        <div class="action-buttons">
+          <div class="view-toggle">
+            <el-button-group>
+              <el-button 
+                :type="viewMode === 'card' ? 'primary' : 'default'"
+                @click="viewMode = 'card'"
+                class="view-btn">
+                <el-icon><Grid /></el-icon>
+                卡片视图
+              </el-button>
+              <el-button 
+                :type="viewMode === 'list' ? 'primary' : 'default'"
+                @click="viewMode = 'list'"
+                class="view-btn">
+                <el-icon><List /></el-icon>
+                列表视图
+              </el-button>
+            </el-button-group>
+          </div>
+          <el-button type="primary" size="large" @click="handleAdd" class="add-btn">
+            <el-icon><Plus /></el-icon>
+            新建课程
+          </el-button>
+        </div>
       </div>
     </div>
 
     <!-- 课程卡片列表 -->
-    <div class="course-grid" v-loading="loading">
+    <div class="course-grid" v-loading="loading" v-show="viewMode === 'card'">
       <div v-for="(item, index) in courseList" :key="item.id" class="course-card-wrapper">
         <el-card class="course-card" shadow="hover" @click="handleViewDetail(item)">
           <div class="card-image">
@@ -143,13 +163,13 @@
             </div>
             
             <div class="card-actions" @click.stop>
+              <el-button type="success" plain @click="handleChapter(item)" class="action-btn">
+                <el-icon><View /></el-icon>
+                查看
+              </el-button>
               <el-button type="primary" plain @click="handleEdit(item)" class="action-btn">
                 <el-icon><Edit /></el-icon>
                 编辑
-              </el-button>
-              <el-button type="success" plain @click="handleChapter(item)" class="action-btn">
-                <el-icon><Document /></el-icon>
-                章节
               </el-button>
               <el-button type="danger" plain @click="handleDelete(item)" class="action-btn danger">
                 <el-icon><Delete /></el-icon>
@@ -159,6 +179,74 @@
           </div>
         </el-card>
       </div>
+    </div>
+
+    <!-- 课程列表视图 -->
+    <div class="course-list-view" v-loading="loading" v-show="viewMode === 'list'">
+      <el-table :data="courseList" style="width: 100%" class="course-table">
+        <el-table-column prop="couPic" label="封面" width="100" align="center">
+          <template #default="scope">
+            <div class="table-image-wrapper">
+              <el-image
+                v-if="scope.row.couPic" 
+                :src="scope.row.couPic.trim()" 
+                :preview-src-list="[scope.row.couPic.trim()]"
+                fit="cover"
+                class="table-image"
+                preview-teleported
+                hide-on-click-modal
+                @error="handleImageError"
+              />
+              <div v-else class="image-slot">
+                <el-icon><Picture /></el-icon>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="couName" label="课程名称" min-width="200">
+          <template #default="scope">
+            <div class="course-name-cell">
+              <span class="course-title">{{ scope.row.couName }}</span>
+              <span class="course-subtitle">{{ scope.row.couIntroduction }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="teaName" label="教师" width="120" align="center" />
+        <el-table-column prop="typeName" label="分类" width="120" align="center" />
+        <el-table-column prop="couPrice" label="价格" width="100" align="center">
+          <template #default="scope">
+            <span class="price-text">¥{{ scope.row.couPrice }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="couCataNum" label="课时" width="80" align="center">
+          <template #default="scope">
+            <span>{{ scope.row.couCataNum || 0 }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="180" align="center">
+          <template #default="scope">
+            <span>{{ formatDate(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="300" align="center" fixed="right">
+          <template #default="scope">
+            <div class="table-actions">
+              <el-button type="primary" size="small" @click="handleViewDetail(scope.row)">
+                <el-icon><View /></el-icon>
+                查看
+              </el-button>
+              <el-button type="warning" size="small" @click="handleEdit(scope.row)">
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button type="danger" size="small" @click="handleDelete(scope.row)">
+                <el-icon><Delete /></el-icon>
+                删除
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <!-- 分页器 - 根据最新反馈优化 -->
@@ -327,13 +415,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useViewModeStore } from '@/stores/viewMode'
+import { Grid, List, Plus, View, Edit, Delete, Document, Picture, User, Calendar, Search, Refresh, ShoppingCart } from '@element-plus/icons-vue'
 import { courseApi, teacherApi, fileUploadApi } from '@/api'
 import pinyin from 'js-pinyin'
 
 const router = useRouter()
+
+// 视图模式
+const viewModeStore = useViewModeStore()
+const viewMode = computed({
+  get: () => viewModeStore.getCourseListViewMode,
+  set: (value) => viewModeStore.setCourseListViewMode(value)
+})
 
 // 查询参数
 const queryParams = reactive({
@@ -771,17 +868,32 @@ onMounted(() => {
 <style scoped>
 .course-list-container {
   padding: 24px;
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+/* 深夜模式背景 */
+[data-theme="dark"] .course-list-container {
 }
 
 /* 搜索区域样式 */
 .search-section {
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .search-card {
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: none;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .search-card {
+  background: rgba(45, 55, 72, 0.95);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .search-card:hover {
@@ -791,109 +903,287 @@ onMounted(() => {
 
 .search-header {
   margin-bottom: 20px;
+  padding: 24px 28px 0;
+  border-bottom: none;
 }
 
 .search-title {
   display: flex;
   align-items: center;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 24px;
+  transition: color 0.3s ease;
 }
 
 .title-icon {
-  margin-right: 8px;
-  color: var(--el-color-primary);
+  font-size: 22px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .search-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 0 28px 28px;
 }
 
 .search-input {
   flex: 1;
   min-width: 300px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.search-input:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .search-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
-.search-btn, .reset-btn {
-  border-radius: 4px;
+.search-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 14px 28px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.search-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.search-btn:hover::before {
+  left: 100%;
+}
+
+.reset-btn {
+  background: rgba(248, 249, 250, 0.9);
+  border: 2px solid rgba(233, 236, 239, 0.8);
+  color: #6c757d;
+  border-radius: 16px;
+  padding: 14px 28px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+[data-theme="dark"] .reset-btn {
+  background: rgba(74, 85, 104, 0.9);
+  border-color: rgba(113, 128, 150, 0.8);
+  color: #e2e8f0;
+}
+
+.reset-btn:hover {
+  background: rgba(233, 236, 239, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.2);
+}
+
+[data-theme="dark"] .reset-btn:hover {
+  background: rgba(113, 128, 150, 0.9);
+  box-shadow: 0 4px 12px rgba(226, 232, 240, 0.1);
 }
 
 /* 操作区域样式 */
 .action-section {
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .action-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 8px;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .action-header {
+  background: rgba(45, 55, 72, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .page-title h2 {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #303133;
+  transition: all 0.3s ease;
 }
 
 .subtitle {
-  margin: 4px 0 0 0;
-  color: #909399;
-  font-size: 14px;
+  color: var(--text-color);
+  font-size: 16px;
+  margin: 8px 0 0 0;
+  opacity: 0.8;
+  transition: color 0.3s ease;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.view-toggle {
+  margin-right: 16px;
+}
+
+.view-btn {
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.view-btn .el-icon {
+  margin-right: 6px;
 }
 
 .add-btn {
-  border-radius: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 16px 32px;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.add-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.add-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.add-btn:hover::before {
+  left: 100%;
 }
 
 /* 课程卡片网格 */
 .course-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
-  align-items: stretch;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 32px;
+  margin-bottom: 40px;
+  padding: 0 8px;
+}
+
+.course-card-wrapper {
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .course-card {
-  border-radius: 8px;
-  border: 1px solid #ebeef5;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  background: #ffffff;
-  cursor: pointer;
   height: 100%;
+  cursor: pointer;
+  border-radius: 24px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+[data-theme="dark"] .course-card {
+  background: rgba(45, 55, 72, 0.95);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.course-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .course-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  transform: translateY(-4px);
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(102, 126, 234, 0.2);
+}
+
+[data-theme="dark"] .course-card:hover {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.course-card:hover::before {
+  opacity: 1;
 }
 
 .card-image {
   position: relative;
-  height: 180px;
+  height: 220px;
   overflow: hidden;
-  background: #f5f7fa;
+  border-radius: 20px 20px 0 0;
 }
 
 .course-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.course-card:hover .course-image {
+  transform: scale(1.08);
 }
 
 .card-content {
-  padding: 20px;
+  padding: 28px;
+  position: relative;
+  z-index: 1;
 }
 
 .course-header {
@@ -906,13 +1196,14 @@ onMounted(() => {
 
 .course-name {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
   flex: 1;
   margin-right: 12px;
   line-height: 1.4;
   min-height: 44px;
+  transition: color 0.3s ease;
 }
 
 .course-type {
@@ -924,7 +1215,7 @@ onMounted(() => {
 .course-meta {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -936,31 +1227,54 @@ onMounted(() => {
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: #606266;
-  font-size: 14px;
+  gap: 10px;
+  color: var(--text-color);
+  font-size: 15px;
+  opacity: 0.8;
+  transition: all 0.3s ease;
 }
 
 .meta-item .el-icon {
-  color: #909399;
+  font-size: 18px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .card-actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 12px;
 }
 
 .action-btn {
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-weight: 500;
-  font-size: 14px;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 13px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.action-btn:hover::before {
+  left: 100%;
 }
 
 .action-btn .el-icon {
@@ -968,7 +1282,7 @@ onMounted(() => {
 }
 
 .action-btn:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 /* 搜索区域标题样式 - 支持黑夜模式 */
@@ -1139,18 +1453,23 @@ onMounted(() => {
   text-align: center;
 }
 
-/* 黑夜模式下拉菜单适配 */
+/* 深夜模式下拉选择器适配 */
+[data-theme="dark"] :deep(.el-select .el-input__wrapper) {
+  background-color: rgba(74, 85, 104, 0.8);
+  border-color: rgba(113, 128, 150, 0.6);
+}
+
 [data-theme="dark"] :deep(.el-select-dropdown) {
-  background-color: var(--card-bg);
-  border-color: var(--border-color);
+  background-color: rgba(45, 55, 72, 0.95);
+  border-color: rgba(113, 128, 150, 0.6);
 }
 
 [data-theme="dark"] :deep(.el-select-dropdown__item) {
-  color: var(--text-color);
+  color: #e2e8f0;
 }
 
 [data-theme="dark"] :deep(.el-select-dropdown__item:hover) {
-  background-color: var(--hover-bg);
+  background-color: rgba(102, 126, 234, 0.2);
 }
 
 /* 响应式设计 */
@@ -1462,5 +1781,92 @@ onMounted(() => {
   max-height: 70vh;
   overflow-y: auto;
   background: #fafbfc;
+}
+
+/* 列表视图样式 */
+.course-list-view {
+  margin-bottom: 32px;
+}
+
+.course-table {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .course-table {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.table-image-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.table-image {
+  width: 60px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.image-slot {
+  width: 60px;
+  height: 40px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c0c4cc;
+}
+
+[data-theme="dark"] .image-slot {
+  background: #2d3748;
+  color: #718096;
+}
+
+.course-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.course-title {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.course-subtitle {
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.6;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.price-text {
+  font-weight: 600;
+  color: #f56c6c;
+  font-size: 14px;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.table-actions .el-button {
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 6px 12px;
 }
 </style>

@@ -2,6 +2,30 @@
   <div class="question-detail-container">
     <!-- 问题主体卡片 -->
     <el-card class="question-card" v-loading="loading">
+      <!-- 封面图片或标题 -->
+      <div class="cover-section">
+        <div v-if="questionImages.length > 0" class="cover-image">
+          <el-image
+            :src="questionImages[0].imgUrl"
+            fit="cover"
+            style="width: 100%; height: 200px; border-radius: 8px;"
+            :preview-src-list="questionImages.map(img => img.imgUrl)"
+            preview-teleported
+          />
+        </div>
+        <div v-else class="cover-title">
+          <div class="title-content">
+            <h2>{{ questionDetail.content }}</h2>
+            <div class="title-meta">
+              <el-tag :type="getQuestionTypeTag(questionDetail.questionType)" size="small">
+                {{ questionDetail.questionType }}
+              </el-tag>
+              <span class="publish-time">{{ formatDate(questionDetail.createTime) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 问题头部 -->
       <div class="question-header">
         <h1 class="question-title">{{ questionDetail.content }}</h1>
@@ -90,30 +114,6 @@
       <!-- 问题内容 -->
       <div class="question-content">
         <div class="content">{{ questionDetail.content }}</div>
-      </div>
-
-      <!-- 封面图片或标题 -->
-      <div class="cover-section">
-        <div v-if="questionImages.length > 0" class="cover-image">
-          <el-image
-            :src="questionImages[0].imgUrl"
-            fit="cover"
-            style="width: 100%; height: 200px; border-radius: 8px;"
-            :preview-src-list="questionImages.map(img => img.imgUrl)"
-            preview-teleported
-          />
-        </div>
-        <div v-else class="cover-title">
-          <div class="title-content">
-            <h2>{{ questionDetail.content }}</h2>
-            <div class="title-meta">
-              <el-tag :type="getQuestionTypeTag(questionDetail.questionType)" size="small">
-                {{ questionDetail.questionType }}
-              </el-tag>
-              <span class="publish-time">{{ formatDate(questionDetail.createTime) }}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- 问题图片 -->
@@ -222,6 +222,7 @@
           <div class="comment-content">
             <div class="comment-header">
               <span class="commenter-name">{{ comment.userName || '匿名用户' }}</span>
+              <el-tag v-if="comment.teaId" type="primary" size="small" class="teacher-tag">老师</el-tag>
               <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
 
             </div>
@@ -238,6 +239,7 @@
                     <el-icon><User /></el-icon>
                   </el-avatar>
                   <span class="quoted-username">{{ getQuotedUserName(comment.parentCommentsId) }}</span>
+                  <el-tag v-if="getQuotedUserTeaId(comment.parentCommentsId)" type="primary" size="small" class="teacher-tag-small">老师</el-tag>
                   <span class="quoted-time">{{ formatDate(getQuotedCommentTime(comment.parentCommentsId)) }}</span>
                 </div>
                 <div class="quoted-text">{{ getQuotedCommentContent(comment.parentCommentsId) }}</div>
@@ -409,13 +411,17 @@ const fetchCommentList = async () => {
         }
         return comment
       })
-
+      // 同步更新问题详情中的评论数
+      questionDetail.value.commentNum = commentList.value.length
     } else {
       commentList.value = []
+      // 如果没有评论，设置评论数为0
+      questionDetail.value.commentNum = 0
     }
   } catch (error) {
     console.error('获取评论列表失败:', error)
     commentList.value = []
+    questionDetail.value.commentNum = 0
   } finally {
     commentsLoading.value = false
   }
@@ -444,6 +450,8 @@ const handleAddComment = async () => {
     // 清除引用状态
     cancelReply()
     fetchCommentList()
+    // 更新问题详情中的评论数
+    questionDetail.value.commentNum = (questionDetail.value.commentNum || 0) + 1
   } catch (error) {
     console.error('发表评论失败:', error)
     ElMessage.error('发表评论失败')
@@ -468,6 +476,8 @@ const handleDeleteComment = async (commentId) => {
     await questionApi.deleteQuestionComment(commentId)
     ElMessage.success('删除成功')
     fetchCommentList()
+    // 更新问题详情中的评论数
+    questionDetail.value.commentNum = Math.max(0, (questionDetail.value.commentNum || 0) - 1)
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除评论失败:', error)
@@ -527,6 +537,11 @@ const getQuotedCommentContent = (commentId) => {
 const getQuotedCommentTime = (commentId) => {
   const comment = commentList.value.find(c => c.id === commentId || c.id === parseInt(commentId))
   return comment ? comment.createTime : ''
+}
+
+const getQuotedUserTeaId = (commentId) => {
+  const comment = commentList.value.find(c => c.id === commentId || c.id === parseInt(commentId))
+  return comment ? comment.teaId : null
 }
 
 // 判断是否可以删除评论
@@ -667,6 +682,12 @@ onMounted(() => {
   overflow: hidden;
 }
 
+[data-theme="dark"] .question-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
 .question-header {
   margin-bottom: 24px;
 }
@@ -678,6 +699,10 @@ onMounted(() => {
   line-height: 1.4;
   margin: 0 0 20px 0;
   word-wrap: break-word;
+}
+
+[data-theme="dark"] .question-title {
+  color: #e5eaf3 !important;
 }
 
 .question-meta {
@@ -702,6 +727,10 @@ onMounted(() => {
   border: 2px solid #e4e7ed;
 }
 
+[data-theme="dark"] .student-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
 .student-details {
   display: flex;
   flex-direction: column;
@@ -714,6 +743,10 @@ onMounted(() => {
   color: #303133;
 }
 
+[data-theme="dark"] .student-name {
+  color: #e5eaf3 !important;
+}
+
 .meta-info {
   display: flex;
   align-items: center;
@@ -722,11 +755,20 @@ onMounted(() => {
   color: #909399;
 }
 
+[data-theme="dark"] .meta-info {
+  color: #a3a6ad !important;
+}
+
 .comment-count,
 .publish-time {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+[data-theme="dark"] .comment-count,
+[data-theme="dark"] .publish-time {
+  color: #a3a6ad !important;
 }
 
 .meta-right {
@@ -763,6 +805,10 @@ onMounted(() => {
   word-wrap: break-word;
 }
 
+[data-theme="dark"] .content {
+  color: #e5eaf3 !important;
+}
+
 .question-images {
   margin-bottom: 24px;
 }
@@ -772,6 +818,10 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #303133;
+}
+
+[data-theme="dark"] .question-images h4 {
+  color: #e5eaf3 !important;
 }
 
 .image-grid {
@@ -798,6 +848,11 @@ onMounted(() => {
   padding: 20px;
 }
 
+[data-theme="dark"] .interaction-stats {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -812,14 +867,28 @@ onMounted(() => {
   color: #606266;
 }
 
+[data-theme="dark"] .stat-item {
+  color: #a3a6ad !important;
+}
+
 .stat-item .el-icon {
   color: #409eff;
+}
+
+[data-theme="dark"] .stat-item .el-icon {
+  color: #79bbff !important;
 }
 
 /* 评论区样式 */
 .comments-card {
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .comments-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .comments-header {
@@ -838,13 +907,25 @@ onMounted(() => {
   color: #303133;
 }
 
+[data-theme="dark"] .comments-title {
+  color: #e5eaf3 !important;
+}
+
 .title-icon {
   color: #409eff;
+}
+
+[data-theme="dark"] .title-icon {
+  color: #79bbff !important;
 }
 
 .comment-count {
   font-size: 14px;
   color: #909399;
+}
+
+[data-theme="dark"] .comment-count {
+  color: #a3a6ad !important;
 }
 
 /* 评论表单 */
@@ -853,6 +934,11 @@ onMounted(() => {
   padding: 24px;
   border-radius: 12px;
   margin-bottom: 24px;
+}
+
+[data-theme="dark"] .comment-form-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .comment-form {
@@ -864,6 +950,20 @@ onMounted(() => {
 
 .comment-textarea {
   border-radius: 8px;
+}
+
+[data-theme="dark"] .comment-textarea :deep(.el-textarea__inner) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #e5eaf3 !important;
+}
+
+[data-theme="dark"] .comment-textarea :deep(.el-textarea__inner):focus {
+  border-color: #79bbff !important;
+}
+
+[data-theme="dark"] .comment-textarea :deep(.el-textarea__inner)::placeholder {
+  color: #a3a6ad !important;
 }
 
 .comment-actions {
@@ -882,6 +982,11 @@ onMounted(() => {
   position: relative;
 }
 
+[data-theme="dark"] .quote-box {
+  background: rgba(64, 158, 255, 0.1) !important;
+  border: 1px solid rgba(64, 158, 255, 0.3) !important;
+}
+
 .quote-header {
   display: flex;
   justify-content: space-between;
@@ -897,20 +1002,36 @@ onMounted(() => {
   letter-spacing: 0.5px;
 }
 
+[data-theme="dark"] .quote-label {
+  color: #79bbff !important;
+}
+
 .cancel-reply {
   color: var(--el-text-color-placeholder);
   padding: 0;
   min-height: auto;
 }
 
+[data-theme="dark"] .cancel-reply {
+  color: #a3a6ad !important;
+}
+
 .cancel-reply:hover {
   color: var(--el-color-danger);
+}
+
+[data-theme="dark"] .cancel-reply:hover {
+  color: #f89898 !important;
 }
 
 .quote-content {
   background: var(--el-bg-color);
   border-radius: 6px;
   padding: 8px;
+}
+
+[data-theme="dark"] .quote-content {
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 
 .quote-user-info {
@@ -926,9 +1047,17 @@ onMounted(() => {
   color: var(--el-text-color-primary);
 }
 
+[data-theme="dark"] .quote-username {
+  color: #e5eaf3 !important;
+}
+
 .quote-time {
   font-size: 11px;
   color: var(--el-text-color-placeholder);
+}
+
+[data-theme="dark"] .quote-time {
+  color: #a3a6ad !important;
 }
 
 .quote-text {
@@ -941,6 +1070,10 @@ onMounted(() => {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+[data-theme="dark"] .quote-text {
+  color: #c0c4cc !important;
 }
 
 /* 评论列表 */
@@ -960,15 +1093,31 @@ onMounted(() => {
   gap: 12px;
 }
 
+[data-theme="dark"] .comment-item-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
 .comment-item-card:hover {
   border-color: var(--el-color-primary-light-5);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .comment-item-card:hover {
+  border-color: #79bbff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .comment-item-card.highlight {
   border-color: var(--el-color-primary);
   box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
   background: var(--el-color-primary-light-9);
+}
+
+[data-theme="dark"] .comment-item-card.highlight {
+  border-color: #79bbff !important;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3) !important;
+  background: rgba(64, 158, 255, 0.1) !important;
 }
 
 .comment-avatar {
@@ -993,9 +1142,17 @@ onMounted(() => {
   font-size: 14px;
 }
 
+[data-theme="dark"] .commenter-name {
+  color: #e5eaf3 !important;
+}
+
 .comment-time {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+}
+
+[data-theme="dark"] .comment-time {
+  color: #a3a6ad !important;
 }
 
 /* 评论中的引用内容样式 */
@@ -1012,11 +1169,24 @@ onMounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+[data-theme="dark"] .comment-quote {
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+  border: 1px solid rgba(64, 158, 255, 0.3) !important;
+  border-left: 4px solid #79bbff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
 .comment-quote:hover {
   border-color: var(--el-color-primary-light-5);
   background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-fill-color-light) 100%);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
+}
+
+[data-theme="dark"] .comment-quote:hover {
+  border-color: #79bbff !important;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .quote-indicator {
@@ -1029,6 +1199,10 @@ onMounted(() => {
   font-weight: 600;
 }
 
+[data-theme="dark"] .quote-indicator {
+  color: #79bbff !important;
+}
+
 .quote-indicator .el-icon {
   font-size: 14px;
 }
@@ -1038,6 +1212,11 @@ onMounted(() => {
   border-radius: 6px;
   padding: 10px;
   border: 1px solid var(--el-border-color-lighter);
+}
+
+[data-theme="dark"] .quoted-comment {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .quoted-user-info {
@@ -1053,10 +1232,18 @@ onMounted(() => {
   color: var(--el-color-primary);
 }
 
+[data-theme="dark"] .quoted-username {
+  color: #79bbff !important;
+}
+
 .quoted-time {
   font-size: 11px;
   color: var(--el-text-color-placeholder);
   margin-left: auto;
+}
+
+[data-theme="dark"] .quoted-time {
+  color: #a3a6ad !important;
 }
 
 .quoted-text {
@@ -1072,11 +1259,19 @@ onMounted(() => {
   -webkit-box-orient: vertical;
 }
 
+[data-theme="dark"] .quoted-text {
+  color: #c0c4cc !important;
+}
+
 .comment-text {
   color: var(--el-text-color-regular);
   line-height: 1.6;
   margin-bottom: 12px;
   word-wrap: break-word;
+}
+
+[data-theme="dark"] .comment-text {
+  color: #c0c4cc !important;
 }
 
 .comment-actions {
@@ -1096,9 +1291,19 @@ onMounted(() => {
   background-color: var(--el-color-primary-light-9);
 }
 
+[data-theme="dark"] .comment-reply:hover {
+  color: #79bbff !important;
+  background-color: rgba(64, 158, 255, 0.1) !important;
+}
+
 .comment-delete:hover {
   color: var(--el-color-danger);
   background-color: var(--el-color-danger-light-9);
+}
+
+[data-theme="dark"] .comment-delete:hover {
+  color: #f89898 !important;
+  background-color: rgba(245, 108, 108, 0.1) !important;
 }
 
 /* 无评论状态 */
@@ -1108,15 +1313,27 @@ onMounted(() => {
   color: var(--el-text-color-placeholder);
 }
 
+[data-theme="dark"] .no-comments {
+  color: #a3a6ad !important;
+}
+
 .no-comments-icon {
   font-size: 48px;
   margin-bottom: 16px;
   color: var(--el-color-info-light-5);
 }
 
+[data-theme="dark"] .no-comments-icon {
+  color: #73767a !important;
+}
+
 .no-comments p {
   margin: 0;
   font-size: 16px;
+}
+
+[data-theme="dark"] .no-comments p {
+  color: #a3a6ad !important;
 }
 
 .cover-section {
@@ -1137,6 +1354,10 @@ onMounted(() => {
   overflow: hidden;
 }
 
+[data-theme="dark"] .cover-title {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
+}
+
 .cover-title::before {
   content: '';
   position: absolute;
@@ -1146,6 +1367,10 @@ onMounted(() => {
   bottom: 0;
   background: rgba(0, 0, 0, 0.1);
   z-index: 1;
+}
+
+[data-theme="dark"] .cover-title::before {
+  background: rgba(0, 0, 0, 0.3) !important;
 }
 
 .title-content {
@@ -1159,6 +1384,11 @@ onMounted(() => {
   font-weight: 600;
   line-height: 1.4;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .title-content h2 {
+  color: #e5eaf3 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
 }
 
 .title-meta {
@@ -1175,9 +1405,103 @@ onMounted(() => {
   color: white;
 }
 
+[data-theme="dark"] .title-meta .el-tag {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #e5eaf3 !important;
+}
+
 .publish-time {
   font-size: 14px;
   opacity: 0.9;
+}
+
+[data-theme="dark"] .publish-time {
+  color: #e5eaf3 !important;
+  opacity: 0.8 !important;
+}
+
+/* 深色模式下的容器样式 */
+[data-theme="dark"] .question-detail-container {
+  background: transparent !important;
+  color: #e5eaf3 !important;
+}
+
+/* 深色模式下的按钮样式 */
+[data-theme="dark"] .el-button {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] .el-button--primary {
+  background: #79bbff !important;
+  border-color: #79bbff !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .el-button--success {
+  background: #95d475 !important;
+  border-color: #95d475 !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .el-button--danger {
+  background: #f89898 !important;
+  border-color: #f89898 !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .el-button--warning {
+  background: #f7ba2a !important;
+  border-color: #f7ba2a !important;
+  color: #1a1a1a !important;
+}
+
+/* 深色模式下的标签样式 */
+[data-theme="dark"] .el-tag {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #e5eaf3 !important;
+}
+
+[data-theme="dark"] .el-tag--success {
+  background: rgba(149, 212, 117, 0.2) !important;
+  border-color: rgba(149, 212, 117, 0.4) !important;
+  color: #95d475 !important;
+}
+
+[data-theme="dark"] .el-tag--warning {
+  background: rgba(247, 186, 42, 0.2) !important;
+  border-color: rgba(247, 186, 42, 0.4) !important;
+  color: #f7ba2a !important;
+}
+
+[data-theme="dark"] .el-tag--danger {
+  background: rgba(248, 152, 152, 0.2) !important;
+  border-color: rgba(248, 152, 152, 0.4) !important;
+  color: #f89898 !important;
+}
+
+[data-theme="dark"] .el-tag--info {
+  background: rgba(115, 118, 122, 0.2) !important;
+  border-color: rgba(115, 118, 122, 0.4) !important;
+  color: #73767a !important;
+}
+
+/* 深色模式下的头像样式 */
+[data-theme="dark"] .el-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 教师标签样式 */
+.teacher-tag {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.teacher-tag-small {
+  margin-left: 4px;
+  font-size: 10px;
+  transform: scale(0.8);
 }
 
 /* 响应式设计 */

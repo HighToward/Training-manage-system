@@ -43,15 +43,35 @@
           <h2>班级管理</h2>
           <p class="subtitle">共 {{ total }} 个班级</p>
         </div>
-        <el-button type="primary" size="large" @click="handleAdd" class="add-btn">
-          <el-icon><Plus /></el-icon>
-          新建班级
-        </el-button>
+        <div class="action-buttons">
+          <div class="view-toggle">
+            <el-button-group>
+              <el-button 
+                :type="viewMode === 'card' ? 'primary' : 'default'"
+                @click="viewMode = 'card'"
+                class="view-btn">
+                <el-icon><Grid /></el-icon>
+                卡片视图
+              </el-button>
+              <el-button 
+                :type="viewMode === 'list' ? 'primary' : 'default'"
+                @click="viewMode = 'list'"
+                class="view-btn">
+                <el-icon><List /></el-icon>
+                列表视图
+              </el-button>
+            </el-button-group>
+          </div>
+          <el-button type="primary" size="large" @click="handleAdd" class="add-btn">
+            <el-icon><Plus /></el-icon>
+            新建班级
+          </el-button>
+        </div>
       </div>
     </div>
 
     <!-- 班级卡片列表 -->
-    <div class="class-grid" v-loading="loading">
+    <div class="class-grid" v-loading="loading" v-show="viewMode === 'card'">
       <div v-for="(item, index) in classList" :key="item.id" class="class-card-wrapper">
         <el-card class="class-card" shadow="hover">
           <div class="card-header">
@@ -95,6 +115,51 @@
           </div>
         </el-card>
       </div>
+    </div>
+
+    <!-- 班级列表视图 -->
+    <div class="class-list-view" v-loading="loading" v-show="viewMode === 'list'">
+      <el-table :data="classList" style="width: 100%" class="class-table">
+        <el-table-column prop="className" label="班级名称" min-width="200">
+          <template #default="scope">
+            <div class="class-name-cell">
+              <span class="class-title">{{ scope.row.className }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="classStuNum" label="学生人数" width="120" align="center">
+          <template #default="scope">
+            <span>{{ scope.row.classStuNum || 0 }} 名学生</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="180" align="center">
+          <template #default="scope">
+            <span>{{ formatDate(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="400" align="center" fixed="right">
+          <template #default="scope">
+            <div class="table-actions">
+              <el-button type="primary" size="small" @click="handleManageStudents(scope.row)">
+                <el-icon><User /></el-icon>
+                学生管理
+              </el-button>
+              <el-button type="success" size="small" @click="handleManageCourses(scope.row)">
+                <el-icon><Reading /></el-icon>
+                课程管理
+              </el-button>
+              <el-button type="warning" size="small" @click="handleEdit(scope.row)">
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button type="danger" size="small" @click="handleDelete(scope.row)">
+                <el-icon><Delete /></el-icon>
+                删除
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <!-- 分页器 - 根据最新反馈优化 -->
@@ -149,13 +214,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Grid, List, Plus, User, Reading, Edit, Delete } from '@element-plus/icons-vue';
 import { classApi } from '@/api'; // Ensure classApi is exported from your api/index.js
 import pinyin from 'js-pinyin';
+import { useViewModeStore } from '@/stores/viewMode';
 
 const router = useRouter();
+
+// 视图模式
+const viewModeStore = useViewModeStore();
+const viewMode = computed({
+  get: () => viewModeStore.getClassListViewMode,
+  set: (value) => viewModeStore.setClassListViewMode(value)
+});
 
 // 修改分页大小默认值
 // 查询参数 - 保持默认值为12
@@ -329,118 +403,307 @@ const formatDate = (dateTimeStr) => {
 <style scoped>
 .class-list-container {
   padding: 24px;
+  min-height: 100vh;
+  transition: all 0.3s ease;
 }
 
-/* 搜索区域样式 */
+/* 深夜模式背景 */
+[data-theme="dark"] .class-list-container {
+}
+
+/* 搜索区域样式 - 现代化设计 */
 .search-section {
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .search-card {
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.search-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--el-box-shadow);
+[data-theme="dark"] .search-card {
+  background: rgba(45, 55, 72, 0.95);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .search-header {
-  margin-bottom: 20px;
+  padding: 24px 28px 0;
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .search-title {
   display: flex;
   align-items: center;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 24px;
+  transition: color 0.3s ease;
 }
 
 .title-icon {
-  margin-right: 8px;
-  color: var(--el-color-primary);
+  font-size: 22px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .search-form {
+  padding: 0 28px 28px;
   display: flex;
-  gap: 16px;
-  align-items: flex-end;
+  gap: 20px;
+  align-items: center;
   flex-wrap: wrap;
 }
 
 .search-input {
   flex: 1;
   min-width: 300px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.search-input:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .search-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
-.search-btn, .reset-btn {
-  border-radius: 4px;
+.search-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 14px 28px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.search-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.search-btn:hover::before {
+  left: 100%;
+}
+
+.reset-btn {
+  background: rgba(248, 249, 250, 0.9);
+  border: 2px solid rgba(233, 236, 239, 0.8);
+  color: #6c757d;
+  border-radius: 16px;
+  padding: 14px 28px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+[data-theme="dark"] .reset-btn {
+  background: rgba(74, 85, 104, 0.9);
+  border-color: rgba(113, 128, 150, 0.8);
+  color: #e2e8f0;
+}
+
+.reset-btn:hover {
+  background: rgba(233, 236, 239, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.2);
+}
+
+[data-theme="dark"] .reset-btn:hover {
+  background: rgba(113, 128, 150, 0.9);
+  box-shadow: 0 4px 12px rgba(226, 232, 240, 0.1);
 }
 
 /* 操作区域样式 */
 .action-section {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .action-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 8px;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .action-header {
+  background: rgba(45, 55, 72, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .page-title h2 {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #303133;
+  transition: all 0.3s ease;
 }
 
 .subtitle {
-  margin: 4px 0 0 0;
-  color: #909399;
-  font-size: 14px;
+  color: var(--text-color);
+  opacity: 0.8;
+  font-size: 16px;
+  margin: 8px 0 0 0;
+  transition: color 0.3s ease;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.view-toggle {
+  margin-right: 16px;
+}
+
+.view-btn {
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.view-btn .el-icon {
+  margin-right: 6px;
 }
 
 .add-btn {
-  border-radius: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 16px 32px;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.add-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.add-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.add-btn:hover::before {
+  left: 100%;
 }
 
 /* 班级卡片网格 */
 .class-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+  padding: 0 8px;
+}
+
+.class-card-wrapper {
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .class-card {
-  border-radius: 8px;
-  border: 1px solid #ebeef5;
+  height: 100%;
+  border-radius: 24px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  background: #ffffff;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+[data-theme="dark"] .class-card {
+  background: rgba(45, 55, 72, 0.95);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.class-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .class-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(102, 126, 234, 0.2);
+}
+
+[data-theme="dark"] .class-card:hover {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.class-card:hover::before {
+  opacity: 1;
 }
 
 .card-header {
+  padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
-  padding: 20px 20px 0 20px;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="dark"] .card-header {
+  border-bottom-color: rgba(226, 232, 240, 0.1);
 }
 
 .class-info {
@@ -449,11 +712,12 @@ const formatDate = (dateTimeStr) => {
 
 /* 在现有的 .class-name 样式后添加黑夜模式适配 */
 .class-name {
-  margin: 0 0 12px 0;
   font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-  transition: color 0.3s ease; /* 添加过渡效果 */
+  font-weight: 800;
+  color: var(--text-color);
+  margin-bottom: 12px;
+  line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 /* 黑夜模式下班级标题颜色适配 */
@@ -471,62 +735,93 @@ const formatDate = (dateTimeStr) => {
 .class-meta {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #606266;
+  gap: 8px;
+  color: var(--text-color);
   font-size: 14px;
+  opacity: 0.8;
+  transition: all 0.3s ease;
 }
 
 .meta-item .el-icon {
-  color: #909399;
+  font-size: 18px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .class-avatar {
-  margin-left: 16px;
+  margin-left: 20px;
 }
 
 .avatar {
-  background: #409eff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  font-weight: 600;
-  font-size: 20px;
-  width: 50px;
-  height: 50px;
-  border-radius: 8px;
+  font-weight: 800;
+  font-size: 24px;
+  width: 60px;
+  height: 60px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.class-card:hover .avatar {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
 }
 
 .card-actions {
+  padding: 16px 20px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 0 20px 20px 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .action-btn {
-  border-radius: 4px;
-  padding: 6px 8px;
-  font-weight: 500;
-  font-size: 13px;
-  height: 32px;
+  padding: 12px 20px;
+  font-size: 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
 }
 
-.action-btn .el-icon {
-  margin-right: 3px;
-  font-size: 14px;
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
 }
 
 .action-btn:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+}
+
+.action-btn:hover::before {
+  left: 100%;
+}
+
+.action-btn.danger:hover {
+  background-color: #f56565 !important;
+  border-color: #f56565 !important;
+  box-shadow: 0 4px 15px rgba(245, 101, 101, 0.4);
 }
 
 /* 响应式设计优化 */
@@ -556,18 +851,18 @@ const formatDate = (dateTimeStr) => {
   }
   
   .card-actions {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   
   .action-btn {
-    height: 36px;
+    height: 40px;
     font-size: 14px;
-    padding: 8px 12px;
+    padding: 10px 16px;
   }
   
   .action-btn .el-icon {
-    margin-right: 4px;
+    margin-right: 6px;
   }
 }
 
@@ -750,6 +1045,46 @@ const formatDate = (dateTimeStr) => {
   background-color: var(--hover-bg);
 }
 
+/* 列表视图样式 */
+.class-list-view {
+  margin-bottom: 32px;
+}
+
+.class-table {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .class-table {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.class-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.class-title {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.table-actions .el-button {
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
 /* 响应式设计优化 */
 @media (max-width: 768px) {
   .class-list-container {
@@ -778,6 +1113,53 @@ const formatDate = (dateTimeStr) => {
   
   .card-actions {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .action-btn {
+    height: 40px;
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+}
+
+/* 响应式设计 - 小屏幕优化 */
+@media (max-width: 480px) {
+  .class-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .class-card {
+    margin: 0;
+  }
+  
+  .card-header {
+    padding: 16px;
+  }
+  
+  .class-name {
+    font-size: 16px;
+  }
+  
+  .card-actions {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+  
+  .card-actions .el-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .table-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .table-actions .el-button {
+    width: 100%;
+    margin: 0;
   }
 }
 </style>

@@ -63,6 +63,24 @@
           <p class="subtitle">共 {{ total }} 篇资讯</p>
         </div>
         <div class="action-buttons">
+          <div class="view-toggle">
+            <el-button-group>
+              <el-button 
+                :type="viewMode === 'card' ? 'primary' : 'default'"
+                @click="viewMode = 'card'"
+                class="view-btn">
+                <el-icon><Grid /></el-icon>
+                卡片视图
+              </el-button>
+              <el-button 
+                :type="viewMode === 'list' ? 'primary' : 'default'"
+                @click="viewMode = 'list'"
+                class="view-btn">
+                <el-icon><List /></el-icon>
+                列表视图
+              </el-button>
+            </el-button-group>
+          </div>
           <el-button type="primary" size="large" @click="handleAdd" class="add-btn">
             <el-icon><Plus /></el-icon>
             新建资讯
@@ -72,7 +90,7 @@
     </div>
 
     <!-- 资讯卡片列表 -->
-    <div class="information-grid" v-loading="loading">
+    <div class="information-grid" v-loading="loading" v-show="viewMode === 'card'">
       <div class="grid-container">
         <el-card 
           v-for="item in informationList" 
@@ -122,7 +140,7 @@
             </div>
             
             <div class="info-content">
-              <p>{{ truncateContent(item.infoMain, 10) }}</p>
+              <p>{{ truncateContent(item.infoMain, 15) }}</p>
             </div>
             
             <div class="card-actions" @click.stop>
@@ -138,6 +156,68 @@
           </div>
         </el-card>
       </div>
+    </div>
+
+    <!-- 资讯列表视图 -->
+    <div class="information-list-view" v-loading="loading" v-show="viewMode === 'list'">
+      <el-table :data="informationList" style="width: 100%" class="information-table">
+        <el-table-column prop="infoImage" label="封面" width="100" align="center">
+          <template #default="scope">
+            <div class="table-image-wrapper">
+              <el-image
+                v-if="scope.row.infoImage" 
+                :src="scope.row.infoImage" 
+                :preview-src-list="[scope.row.infoImage]"
+                fit="cover"
+                class="table-image"
+                preview-teleported
+                hide-on-click-modal
+                @error="handleImageError"
+              />
+              <div v-else class="image-slot">
+                <el-icon><Picture /></el-icon>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="infoTitle" label="标题" min-width="200">
+          <template #default="scope">
+            <div class="info-name-cell">
+              <span class="info-title">{{ scope.row.infoTitle }}</span>
+              <span class="info-summary">{{ truncateContent(scope.row.infoMain, 50) }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="teaName" label="作者" width="120" align="center" />
+        <el-table-column prop="infoComment" label="评论数" width="100" align="center">
+          <template #default="scope">
+            <span>{{ scope.row.infoComment || 0 }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="发布时间" width="180" align="center">
+          <template #default="scope">
+            <span>{{ formatDate(scope.row.createTime) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="300" align="center" fixed="right">
+          <template #default="scope">
+            <div class="table-actions">
+              <el-button type="primary" size="small" @click="handleViewDetail(scope.row)">
+                <el-icon><View /></el-icon>
+                查看
+              </el-button>
+              <el-button type="warning" size="small" @click="handleEdit(scope.row)">
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button type="danger" size="small" @click="handleDelete(scope.row)">
+                <el-icon><Delete /></el-icon>
+                删除
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <!-- 分页器 -->
@@ -235,16 +315,24 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Edit, Delete, User, Calendar, Picture, ChatDotRound } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, User, Calendar, Picture, ChatDotRound, Grid, List, View } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { informationApi, teacherApi } from '@/api'
 import '@wangeditor/editor/dist/css/style.css'
 import { createEditor, createToolbar } from '@wangeditor/editor'
 import pinyin from 'js-pinyin'
+import { useViewModeStore } from '@/stores/viewMode'
 
 const router = useRouter()
+
+// 视图模式
+const viewModeStore = useViewModeStore()
+const viewMode = computed({
+  get: () => viewModeStore.getInformationListViewMode,
+  set: (value) => viewModeStore.setInformationListViewMode(value)
+})
 
 // 查询参数
 const queryParams = reactive({
@@ -695,20 +783,33 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 复用课程列表的样式，并做适当调整 */
 .information-list-container {
   padding: 24px;
   min-height: calc(100vh - 60px);
+  transition: all 0.3s ease;
+}
+
+/* 深夜模式背景 */
+[data-theme="dark"] .information-list-container {
 }
 
 .search-section {
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .search-card {
-  border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .search-card {
+  background: rgba(45, 55, 72, 0.95);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .search-card:hover {
@@ -717,90 +818,265 @@ onMounted(() => {
 }
 
 .search-header {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding: 24px 28px 0;
 }
 
 .search-title {
   display: flex;
   align-items: center;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
+  transition: color 0.3s ease;
 }
 
 .title-icon {
-  margin-right: 8px;
-  color: var(--el-color-primary);
+  font-size: 22px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .search-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 0 28px 28px;
 }
 
 .search-input {
   flex: 1;
   min-width: 300px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.search-input:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .search-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px;
+  justify-content: center;
 }
 
-.search-btn, .reset-btn {
-  border-radius: 4px;
+.search-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 14px 28px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.search-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.search-btn:hover::before {
+  left: 100%;
+}
+
+.reset-btn {
+  background: rgba(248, 249, 250, 0.9);
+  border: 2px solid rgba(233, 236, 239, 0.8);
+  color: #6c757d;
+  border-radius: 16px;
+  padding: 14px 28px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+[data-theme="dark"] .reset-btn {
+  background: rgba(74, 85, 104, 0.9);
+  border-color: rgba(113, 128, 150, 0.8);
+  color: #e2e8f0;
+}
+
+.reset-btn:hover {
+  background: rgba(233, 236, 239, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.2);
+}
+
+[data-theme="dark"] .reset-btn:hover {
+  background: rgba(113, 128, 150, 0.9);
+  box-shadow: 0 4px 12px rgba(226, 232, 240, 0.1);
 }
 
 .action-section {
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .action-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 8px;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .action-header {
+  background: rgba(45, 55, 72, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .page-title h2 {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  transition: all 0.3s ease;
 }
 
 .subtitle {
-  margin: 4px 0 0 0;
-  color: var(--el-text-color-regular);
-  font-size: 14px;
+  color: var(--text-color);
+  font-size: 16px;
+  margin: 8px 0 0 0;
+  opacity: 0.8;
+  transition: color 0.3s ease;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+
+.view-toggle {
+  margin-right: 16px;
+}
+
+.view-btn {
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.view-btn .el-icon {
+  margin-right: 6px;
 }
 
 .add-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 16px 32px;
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
   min-width: 120px;
 }
 
+.add-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.add-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.add-btn:hover::before {
+  left: 100%;
+}
+
 .information-grid {
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+  gap: 24px;
+  padding: 0 8px;
 }
 
 .information-card {
   cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+}
+
+[data-theme="dark"] .information-card {
+  background: rgba(45, 55, 72, 0.9);
+  border-color: rgba(74, 85, 104, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.information-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
 }
 
 .information-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--el-box-shadow);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 16px 48px rgba(102, 126, 234, 0.2);
+}
+
+.information-card:hover::before {
+  transform: scaleX(1);
+}
+
+[data-theme="dark"] .information-card:hover {
+  box-shadow: 0 16px 48px rgba(102, 126, 234, 0.3);
+}
+
+.information-card:hover .card-image .info-image {
+  transform: scale(1.05);
 }
 
 .card-image {
@@ -815,6 +1091,11 @@ onMounted(() => {
 .info-image {
   width: 100%;
   height: 100%;
+  transition: transform 0.4s ease;
+}
+
+.information-card:hover .info-image {
+  transform: scale(1.05);
 }
 
 .no-image {
@@ -841,13 +1122,13 @@ onMounted(() => {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  min-height: 44px;
+  text-overflow: ellipsis;
+  min-height: 50px;
 }
 
 .info-meta {
@@ -1060,28 +1341,298 @@ onMounted(() => {
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .information-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .information-list-container {
     padding: 16px;
   }
   
-  .grid-container {
-    grid-template-columns: 1fr;
+  .search-card {
+    border-radius: 16px;
+    margin: 0 -8px;
+  }
+  
+  .search-header {
+    padding: 20px 24px 0;
+  }
+  
+  .search-title {
+    font-size: 18px;
   }
   
   .search-form {
     flex-direction: column;
-    align-items: stretch;
+    padding: 0 24px 24px;
+  }
+  
+  .search-input {
+    min-width: auto;
+    border-radius: 12px;
   }
   
   .search-actions {
-    justify-content: center;
+    gap: 12px;
+  }
+  
+  .search-btn, .reset-btn {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
   }
   
   .action-header {
     flex-direction: column;
+    gap: 20px;
     align-items: flex-start;
-    gap: 16px;
+    padding: 20px 24px;
+    border-radius: 16px;
+    margin: 0 -8px;
   }
+  
+  .page-title h2 {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+  
+  .add-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+  
+  .grid-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0;
+  }
+  
+  .information-card {
+    border-radius: 16px;
+    margin: 0 -8px;
+  }
+  
+  .card-content {
+    padding: 20px;
+  }
+  
+  .info-title {
+    font-size: 18px;
+  }
+  
+  .info-image {
+    height: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .information-list-container {
+    padding: 12px;
+  }
+  
+  .search-header {
+    padding: 16px 20px 0;
+  }
+  
+  .search-form {
+    padding: 0 20px 20px;
+  }
+  
+  .action-header {
+    padding: 16px 20px;
+  }
+  
+  .page-title h2 {
+    font-size: 20px;
+  }
+  
+  .card-content {
+    padding: 16px;
+  }
+  
+  .info-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .info-meta {
+    font-size: 12px;
+    margin-bottom: 16px;
+    padding: 8px 0;
+  }
+  
+  .card-image {
+    height: 160px;
+  }
+}
+
+/* 加载动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.information-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.information-card:nth-child(1) { animation-delay: 0.1s; }
+.information-card:nth-child(2) { animation-delay: 0.2s; }
+.information-card:nth-child(3) { animation-delay: 0.3s; }
+.information-card:nth-child(4) { animation-delay: 0.4s; }
+.information-card:nth-child(5) { animation-delay: 0.5s; }
+.information-card:nth-child(6) { animation-delay: 0.6s; }
+
+/* 列表视图样式 */
+.information-list-view {
+  margin-bottom: 32px;
+}
+
+.information-table {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .information-table {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.table-image-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.table-image {
+  width: 60px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.image-slot {
+  width: 60px;
+  height: 40px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c0c4cc;
+}
+
+[data-theme="dark"] .image-slot {
+  background: #2d3748;
+  color: #718096;
+}
+
+.info-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-summary {
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.6;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.table-actions .el-button {
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+/* 滚动条美化 */
+.information-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.information-list-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.information-list-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+}
+
+.information-list-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+[data-theme="dark"] .information-list-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 深夜模式额外优化 */
+[data-theme="dark"] .search-input:hover {
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+[data-theme="dark"] .information-card:hover {
+  border-color: rgba(102, 126, 234, 0.3);
 }
 </style>

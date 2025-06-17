@@ -2,8 +2,108 @@
   <div v-if="isLoginPage" class="login-page-wrapper">
     <router-view />
   </div>
-  <div v-else class="app-container" :class="{ 'dark-theme': isDarkMode }">
-    <el-container class="main-container">
+  <div v-else class="app-container" :class="{ 'dark-theme': isDarkMode, 'topbar-layout': isTopbarLayout }">
+    <!-- 顶部导航栏模式 -->
+    <el-container v-if="isTopbarLayout" class="main-container topbar-container">
+      <el-header class="topbar-header">
+        <!-- 左侧Logo区域 -->
+        <div class="topbar-logo">
+          <div class="company-logo-topbar">
+            <el-icon size="32" :color="isDarkMode ? '#ffffff' : '#3b82f6'"><OfficeBuilding /></el-icon>
+          </div>
+          <h2 class="title-topbar">企业内部培训系统</h2>
+        </div>
+        
+        <!-- 中间导航菜单 -->
+        <div class="topbar-nav">
+          <el-menu
+            :default-active="activeMenu"
+            class="el-menu-horizontal"
+            mode="horizontal"
+            background-color="transparent"
+            :text-color="isDarkMode ? '#e2e8f0' : '#606266'"
+            :active-text-color="isDarkMode ? '#60a5fa' : '#3b82f6'"
+            :ellipsis="false"
+            router
+          >
+            <el-menu-item index="/dashboard" style="margin-top: 9px;">
+              <el-icon><Odometer /></el-icon>
+              <span>仪表盘</span>
+            </el-menu-item>
+            <el-sub-menu index="course-management">
+              <template #title>
+                <el-icon><School /></el-icon>
+                <span>课程管理</span>
+              </template>
+              <el-menu-item index="/course/list">课程列表</el-menu-item>
+            </el-sub-menu>
+            <el-sub-menu index="class-main-management">
+              <template #title>
+                <el-icon><User /></el-icon>
+                <span>班级管理</span>
+              </template>
+              <el-menu-item index="/class/list">班级列表</el-menu-item>
+            </el-sub-menu>
+            <el-sub-menu index="information-management">
+              <template #title>
+                <el-icon><Document /></el-icon>
+                <span>资讯管理</span>
+              </template>
+              <el-menu-item index="/information/list">资讯列表</el-menu-item>
+            </el-sub-menu>
+            <el-sub-menu index="question-management">
+              <template #title>
+                <el-icon><ChatDotRound /></el-icon>
+                <span>问题管理</span>
+              </template>
+              <el-menu-item index="/question/list">问题反馈</el-menu-item>
+            </el-sub-menu>
+
+          </el-menu>
+        </div>
+        
+        <!-- 右侧控制区域 -->
+        <div class="topbar-controls">
+          <!-- 导航栏布局切换按钮 -->
+          <el-button 
+            class="layout-toggle-btn" 
+            @click="toggleNavigationLayout" 
+            :icon="Menu"
+            circle
+            size="small"
+            type="primary"
+          />
+          <!-- 主题切换按钮 -->
+          <el-button 
+            class="theme-toggle-btn-topbar" 
+            @click="toggleTheme" 
+            :icon="isDarkMode ? Sunny : Moon"
+            circle
+            size="small"
+            :type="isDarkMode ? 'warning' : 'info'"
+          />
+          <!-- 用户信息 -->
+          <el-dropdown>
+            <span class="user-info-topbar">
+              <el-avatar :size="32" :src="userInfo?.pic" icon="UserFilled" />
+              <span class="username-topbar">{{ userInfo?.teaName || '教师' }}</span>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="handleUserProfile">个人信息</el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </el-header>
+      <el-main class="main topbar-main">
+        <router-view />
+      </el-main>
+    </el-container>
+    
+    <!-- 侧边导航栏模式 -->
+    <el-container v-else class="main-container sidebar-container">
       <el-aside :width="isCollapsed ? '64px' : '220px'" class="aside">
         <div class="logo-container">
           <!-- 企业logo占位符 -->
@@ -66,25 +166,19 @@
             <el-menu-item index="/question/list">问题反馈</el-menu-item>
           </el-sub-menu>
 
-          <el-sub-menu index="statistics-analysis">
-            <template #title>
-              <el-icon><DataAnalysis /></el-icon>
-              <span>统计分析</span>
-            </template>
-            <el-menu-item index="/statistics/course">课程统计</el-menu-item>
-          </el-sub-menu>
 
-          <el-sub-menu index="system-tools">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span>系统工具</span>
-            </template>
-            <el-menu-item index="/api-test">API测试</el-menu-item>
-          </el-sub-menu>
         </el-menu>
         
-        <!-- 主题切换按钮 -->
-        <div class="theme-toggle-container">
+        <!-- 导航栏布局切换按钮和主题切换按钮 -->
+        <div class="sidebar-controls">
+          <el-button 
+            class="layout-toggle-btn" 
+            @click="toggleNavigationLayout" 
+            :icon="Menu"
+            circle
+            size="small"
+            type="primary"
+          />
           <el-button 
             class="theme-toggle-btn" 
             @click="toggleTheme" 
@@ -145,31 +239,44 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { Sunny, Moon, Expand, Fold, Reading, UserFilled, Document, TrendCharts, Tools, Odometer, School, User, DataAnalysis, Setting, OfficeBuilding, ChatDotRound } from '@element-plus/icons-vue'
+import { Sunny, Moon, Expand, Fold, Reading, UserFilled, Document, TrendCharts, Tools, Odometer, School, User, DataAnalysis, Setting, OfficeBuilding, ChatDotRound, Menu } from '@element-plus/icons-vue'
+import { useViewModeStore } from '@/stores/viewMode'
 
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const viewModeStore = useViewModeStore()
 
-// 侧边栏折叠状态
-const isCollapsed = ref(false)
+// 侧边栏折叠状态 - 从store获取
+const isCollapsed = computed({
+  get: () => viewModeStore.getSidebarCollapsed,
+  set: (value) => viewModeStore.setSidebarCollapsed(value)
+})
 
 // 主题状态
 const isDarkMode = ref(false)
+
+// 导航栏布局模式
+const isTopbarLayout = computed(() => viewModeStore.isTopbarLayout)
 
 // 从store获取用户信息
 const userInfo = computed(() => userStore.userInfo)
 
 // 切换侧边栏折叠状态
 const toggleCollapse = () => {
-  isCollapsed.value = !isCollapsed.value
+  viewModeStore.toggleSidebarCollapsed()
 }
 
 // 切换主题
 const toggleTheme = () => {
   isDarkMode.value = !isDarkMode.value
   localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light')
+}
+
+// 切换导航栏布局
+const toggleNavigationLayout = () => {
+  viewModeStore.toggleNavigationLayout()
 }
 
 // 处理登出
@@ -202,8 +309,7 @@ const getParentRoute = (parentTitle) => {
   const parentRouteMap = {
     '课程列表': '/course/list',
     '班级列表': '/class/list',
-    '资讯列表': '/information/list',
-    '统计分析': '/statistics/course'
+    '资讯列表': '/information/list'
   }
   
   return { path: parentRouteMap[parentTitle] || '/' }
@@ -215,17 +321,14 @@ const routeMenuMap = {
   'CourseDetail': 'course-management',
   'ClassList': '/class/list',
   'ClassStudents': 'class-main-management',
-  'ClassCourses': 'class-main-management',
-  'CourseStatistics': 'statistics-analysis',
-  'ApiTest': 'system-tools'
+  'ClassCourses': 'class-main-management'
 }
 
 // 路径模式匹配配置
 const pathPatterns = [
   { pattern: /^\/course\/detail\/\d+$/, menu: 'course-management' },
   { pattern: /^\/class\/students\/\d+$/, menu: 'class-main-management' },
-  { pattern: /^\/class\/courses\/\d+$/, menu: 'class-main-management' },
-  { pattern: /^\/statistics\//, menu: 'statistics-analysis' }
+  { pattern: /^\/class\/courses\/\d+$/, menu: 'class-main-management' }
 ]
 
 // 当前激活的菜单项
@@ -238,12 +341,6 @@ const activeMenu = computed(() => {
   }
   if (name === 'ClassList' || name === 'ClassStudents' || name === 'ClassCourses' || path.startsWith('/class/')) {
     return '/class/list'
-  }
-  if (path.startsWith('/statistics/')) {
-    return '/statistics/course'
-  }
-  if (name === 'ApiTest' || path === '/api-test') {
-    return '/api-test'
   }
   
   return path
@@ -260,12 +357,6 @@ const defaultOpeneds = computed(() => {
   }
   if (name === 'ClassList' || name === 'ClassStudents' || name === 'ClassCourses' || path.startsWith('/class/')) {
     openeds.push('class-main-management')
-  }
-  if (path.startsWith('/statistics/')) {
-    openeds.push('statistics-analysis')
-  }
-  if (name === 'ApiTest' || path === '/api-test') {
-    openeds.push('system-tools')
   }
   
   return openeds
@@ -524,14 +615,18 @@ watch(isDarkMode, (newVal) => {
   color: #60a5fa !important;
 }
 
-/* 主题切换按钮容器 */
-.theme-toggle-container {
+/* 侧边栏控制按钮容器 */
+.sidebar-controls {
   position: absolute;
   bottom: 20px;
-  left: 14px;
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: baseline;
 }
 
+.layout-toggle-btn,
 .theme-toggle-btn {
   width: 36px !important;
   height: 36px !important;
@@ -539,6 +634,7 @@ watch(isDarkMode, (newVal) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.layout-toggle-btn:hover,
 .theme-toggle-btn:hover {
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -674,6 +770,243 @@ watch(isDarkMode, (newVal) => {
 .el-menu--collapse .el-menu-item .el-icon,
 .el-menu--collapse .el-sub-menu__title .el-icon {
   margin-right: 0;
+}
+
+/* 顶部导航栏样式 */
+.topbar-container {
+  transition: all 0.3s ease;
+}
+
+.topbar-header {
+  background-color: #fff;
+  border-bottom: 1px solid #e6e6e6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 80px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .topbar-header {
+  background-color: #2d3748;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+/* 顶部Logo区域 */
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.company-logo-topbar {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .company-logo-topbar {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.title-topbar {
+  color: #303133;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .title-topbar {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 顶部导航菜单 */
+.topbar-nav {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.el-menu-horizontal {
+  border-bottom: none !important;
+  background: transparent !important;
+}
+
+.el-menu-horizontal .el-menu-item {
+  background: transparent !important;
+  border-radius: 6px;
+  margin: 0 4px;
+  transition: all 0.3s ease;
+  height: 40px;
+  line-height: 40px;
+}
+
+.el-menu-horizontal .el-sub-menu .el-sub-menu__title {
+  background: transparent !important;
+  border-radius: 6px;
+  margin: 0 4px;
+  transition: all 0.3s ease;
+  height: 40px;
+  line-height: 40px;
+}
+
+.el-menu-horizontal .el-menu-item:hover {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #3b82f6 !important;
+}
+
+.el-menu-horizontal .el-sub-menu .el-sub-menu__title:hover {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #3b82f6 !important;
+}
+
+.el-menu-horizontal .el-menu-item.is-active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="dark"] .el-menu-horizontal .el-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .el-menu-horizontal .el-sub-menu .el-sub-menu__title:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #60a5fa !important;
+}
+
+/* 顶部控制区域 */
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+.theme-toggle-btn-topbar {
+  width: 36px !important;
+  height: 36px !important;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-toggle-btn-topbar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 顶部用户信息 */
+.user-info-topbar {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.user-info-topbar:hover {
+  background-color: #f5f7fa;
+}
+
+[data-theme="dark"] .user-info-topbar:hover {
+  background-color: #4a5568;
+}
+
+.username-topbar {
+  margin-left: 8px;
+  font-size: 14px;
+  color: #303133;
+}
+
+[data-theme="dark"] .username-topbar {
+  color: #e2e8f0;
+}
+
+/* 顶部主内容区域 */
+.topbar-main {
+  background-color: #f8fafc;
+  padding: 20px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .topbar-main {
+  background-color: #1a202c;
+}
+
+/* 布局切换动画 */
+.app-container {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.sidebar-container,
+.topbar-container {
+  animation: layoutFadeIn 0.3s ease-out;
+}
+
+@keyframes layoutFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 - 顶部导航栏 */
+@media (max-width: 1200px) {
+  .topbar-nav .el-menu-horizontal {
+    font-size: 14px;
+  }
+  
+  .topbar-nav .el-menu-horizontal .el-menu-item,
+  .topbar-nav .el-menu-horizontal .el-sub-menu .el-sub-menu__title {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar-header {
+    padding: 0 12px;
+  }
+  
+  .topbar-logo {
+    min-width: 150px;
+  }
+  
+  .title-topbar {
+    font-size: 14px;
+  }
+  
+  .topbar-controls {
+    min-width: 120px;
+    gap: 8px;
+  }
+  
+  .username-topbar {
+    display: none;
+  }
 }
 </style>
 

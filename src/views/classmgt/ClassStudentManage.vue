@@ -13,6 +13,7 @@
         <el-card>
           <template #header>已在班级 "{{ currentClass.className }}" 的学生 ({{ assignedStudents.length }})</template>
           <el-table :data="assignedStudents" v-loading="loadingAssigned" height="400px">
+            <el-table-column prop="id" label="学号" width="80"></el-table-column>
             <el-table-column prop="stuName" label="学生姓名"></el-table-column>
             <el-table-column label="操作" width="100">
               <template #default="scope">
@@ -27,6 +28,7 @@
           <template #header>可添加的学生 ({{ availableStudents.length }})</template>
           <el-input v-model="studentSearch" placeholder="搜索学生名称" clearable @input="filterAvailableStudents" style="margin-bottom:10px;"/>
           <el-table :data="filteredAvailableStudents" v-loading="loadingAvailable" height="360px">
+            <el-table-column prop="id" label="学号" width="80"></el-table-column>
             <el-table-column prop="stuName" label="学生姓名"></el-table-column>
             <el-table-column label="操作" width="100">
               <template #default="scope">

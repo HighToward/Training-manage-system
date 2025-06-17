@@ -169,6 +169,34 @@ export const chapterApi = {
   }
 }
 
+// 实践相关API
+export const practiceApi = {
+  // 获取实践列表
+  getPracticeList(courseId) {
+    return api.get(`/practice/list/${courseId}`)
+  },
+  // 创建实践
+  createPractice(data) {
+    return api.post('/practice', data)
+  },
+  // 更新实践
+  updatePractice(data) {
+    return api.put('/practice', data)
+  },
+  // 删除实践
+  deletePractice(id) {
+    return api.delete(`/practice/${id}`)
+  },
+  // 根据教师ID获取实践列表
+  getPracticeByTeacherId(teacherId) {
+    return api.get(`/practice/teacher/${teacherId}`)
+  },
+  // 根据实践ID获取实践详情
+  getPracticeById(id) {
+    return api.get(`/practice/${id}`)
+  }
+}
+
 // 文件上传相关API
 export const fileUploadApi = {
   // 上传视频文件
@@ -335,6 +363,18 @@ export const informationApi = {
   // 取消点赞评论
   unlikeComment(commentId, stuId) {
     return api.delete(`/information/comments/${commentId}/like/${stuId}`);
+  },
+  // 检查资讯点赞状态
+  checkLikeStatus(infoId, stuId) {
+    return api.get(`/information/${infoId}/like/status/${stuId}`);
+  },
+  // 检查资讯收藏状态
+  checkCollectStatus(infoId, stuId) {
+    return api.get(`/information/${infoId}/collect/status/${stuId}`);
+  },
+  // 检查评论点赞状态
+  checkCommentLikeStatus(commentId, stuId) {
+    return api.get(`/information/comments/${commentId}/like/status/${stuId}`);
   }
 };
 

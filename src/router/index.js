@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import ApiTest from '@/components/ApiTest.vue';
+
 import Login from '../views/Login.vue';
 
 const routes = [
@@ -26,12 +26,7 @@ const routes = [
       parentMenu: 'dashboard'
     }
   },
-  {
-    path: '/api-test',
-    name: 'ApiTest',
-    component: ApiTest,
-    meta: { title: 'API测试' }
-  },
+
   // 课程管理路由组
   {
     path: '/course/list',
