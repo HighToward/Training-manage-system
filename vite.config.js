@@ -4,6 +4,7 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/',
   plugins: [vue()],
   resolve: {
     alias: {
@@ -13,15 +14,14 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    allowedHosts: ['frp-bar.com'],
     proxy: {
       '/api': {
-        target: 'http://localhost:8080', // 后端地址
+        target: 'https://api.nekowalker.cn/', // 后端地址
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api')
       },
       '/uploads': {
-        target: 'http://localhost:8080', // 后端地址
+        target: 'https://api.nekowalker.cn/', // 后端地址
         changeOrigin: true,
         secure: false,
         logLevel: 'debug', // 添加调试日志

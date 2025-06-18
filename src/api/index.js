@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // 创建axios实例
 const api = axios.create({
-  baseURL: '/api/', // 添加斜杠确保路径正确，Vite代理会将/api替换为空，所以这里需要保留斜杠
+  baseURL: 'https://api.nekowalker.cn/api', // 添加斜杠确保路径正确，Vite代理会将/api替换为空，所以这里需要保留斜杠
   timeout: 10000,
   withCredentials: true // 如果需要携带cookie
 })
@@ -492,7 +492,7 @@ export const userApi = {
   
   // 上传头像
   uploadAvatar(formData) {
-    return api.post('/upload/avatar', formData, {
+    return api.post('/uploads/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }

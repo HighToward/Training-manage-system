@@ -254,7 +254,7 @@
       <el-pagination
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
-        :page-sizes="[12, 24, 48]"
+        :page-sizes="[8, 16, 24, 48]"
         layout="prev, pager, next, jumper"
         :total="total"
         @size-change="handleSizeChange"
@@ -440,7 +440,7 @@ const queryParams = reactive({
   couTypeIds: [],
   teaId: undefined,
   pageNum: 1,
-  pageSize: 12 // 默认12条/页
+  pageSize: 8 // 默认8条/页
 })
 
 // 表格数据

@@ -167,7 +167,7 @@
       <el-pagination
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
-        :page-sizes="[12, 24, 48, 96]"
+        :page-sizes="[8, 16, 24, 48]"
         layout="prev, pager, next, jumper"
         :total="total"
         @size-change="handleSizeChange"
@@ -232,11 +232,11 @@ const viewMode = computed({
 });
 
 // 修改分页大小默认值
-// 查询参数 - 保持默认值为12
+// 查询参数 - 默认值为8
 const queryParams = reactive({
   className: '',
   pageNum: 1,
-  pageSize: 12, // 保持12个一页，适合卡片布局
+  pageSize: 8, // 默认8个一页，适合卡片布局
 });
 const queryFormRef = ref(null);
 const loading = ref(false);
