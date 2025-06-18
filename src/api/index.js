@@ -382,99 +382,99 @@ export const informationApi = {
 export const questionApi = {
   // 获取问题列表
   getQuestionList(params) {
-    return api.get('/topicQuestion/list', { params });
+    return api.get('/topic-question/list', { params });
   },
   // 获取问题详情
   getQuestionById(id) {
-    return api.get(`/topicQuestion/${id}`);
+    return api.get(`/topic-question/${id}`);
   },
   // 创建问题
   createQuestion(data) {
-    return api.post('/topicQuestion', data);
+    return api.post('/topic-question', data);
   },
   // 更新问题
   updateQuestion(id, data) {
-    return api.put(`/topicQuestion/${id}`, data);
+    return api.put(`/topic-question/${id}`, data);
   },
   // 删除问题
   deleteQuestion(id) {
-    return api.delete(`/topicQuestion/${id}`);
+    return api.delete(`/topic-question/${id}`);
   },
   // 根据学生ID获取问题
   getQuestionsByStudentId(stuId) {
-    return api.get(`/topicQuestion/student/${stuId}`);
+    return api.get(`/topic-question/student/${stuId}`);
   },
   // 根据班级ID获取问题
   getQuestionsByClassId(classId) {
-    return api.get(`/topicQuestion/class/${classId}`);
+    return api.get(`/topic-question/class/${classId}`);
   },
   // 采纳问题
   adoptQuestion(id) {
-    return api.put(`/topicQuestion/${id}/adopt`);
+    return api.put(`/topic-question/${id}/adopt`);
   },
   // 取消采纳问题
   cancelAdoptQuestion(id) {
-    return api.put(`/topicQuestion/${id}/cancel-adopt`);
+    return api.put(`/topic-question/${id}/cancel-adopt`);
   },
   // 批量采纳问题
   batchAdoptQuestions(ids) {
-    return api.put('/topicQuestion/batch-adopt', { ids });
+    return api.put('/topic-question/batch-adopt', { ids });
   },
   // 不采纳问题
   rejectQuestion(id) {
-    return api.put(`/topicQuestion/${id}/reject`);
+    return api.put(`/topic-question/${id}/reject`);
   },
   // 点赞问题
   likeQuestion(qId, stuId) {
-    return api.post(`/topicQuestion/${qId}/like/${stuId}`);
+    return api.post(`/topic-question/${qId}/like/${stuId}`);
   },
   // 获取问题类型列表
   getQuestionTypes() {
-    return api.get('/topicQuestion/types');
+    return api.get('/topic-question/types');
   },
   // 取消点赞问题
   unlikeQuestion(qId, stuId) {
-    return api.delete(`/topicQuestion/${qId}/like/${stuId}`);
+    return api.delete(`/topic-question/${qId}/like/${stuId}`);
   },
   // 收藏问题
   collectQuestion(qId, stuId) {
-    return api.post(`/topicQuestion/${qId}/collect/${stuId}`);
+    return api.post(`/topic-question/${qId}/collect/${stuId}`);
   },
   // 取消收藏问题
   uncollectQuestion(qId, stuId) {
-    return api.delete(`/topicQuestion/${qId}/collect/${stuId}`);
+    return api.delete(`/topic-question/${qId}/collect/${stuId}`);
   },
   // 获取问题图片
   getQuestionImages(qId) {
-    return api.get(`/topicQuestion/${qId}/images`);
+    return api.get(`/topic-question/${qId}/images`);
   },
   // 获取问题评论
   getCommentsByQuestionId(qId) {
-    return api.get(`/topicQuestion/${qId}/comments`);
+    return api.get(`/topic-question/${qId}/comments`);
   },
   // 创建问题评论
   createQuestionComment(qId, comment) {
-    return api.post(`/topicQuestion/${qId}/comments`, comment);
+    return api.post(`/topic-question/${qId}/comments`, comment);
   },
   // 删除问题评论
   deleteQuestionComment(commentId) {
-    return api.delete(`/topicQuestion/comments/${commentId}`);
+    return api.delete(`/topic-question/comments/${commentId}`);
   },
   // 点赞问题评论
   likeQuestionComment(commentId, stuId) {
-    return api.post(`/topicQuestion/comments/${commentId}/like/${stuId}`);
+    return api.post(`/topic-question/comments/${commentId}/like/${stuId}`);
   },
   // 取消点赞问题评论
   unlikeQuestionComment(commentId, stuId) {
-    return api.delete(`/topicQuestion/comments/${commentId}/like/${stuId}`);
+    return api.delete(`/topic-question/comments/${commentId}/like/${stuId}`);
   },
   // 采纳问题评论
   adoptQuestionComment(commentId) {
-    return api.put(`/topicQuestion/comments/${commentId}/adopt`);
+    return api.put(`/topic-question/comments/${commentId}/adopt`);
   },
   // 获取评论回复
   getCommentReplies(commentId) {
-    return api.get(`/topicQuestion/comments/${commentId}/replies`);
+    return api.get(`/topic-question/comments/${commentId}/replies`);
   }
 };
 
