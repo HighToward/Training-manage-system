@@ -26,7 +26,14 @@
       <el-col :span="12">
         <el-card>
           <template #header>可添加的学生 ({{ availableStudents.length }})</template>
-          <el-input v-model="studentSearch" placeholder="搜索学生名称" clearable @input="filterAvailableStudents" style="margin-bottom:10px;"/>
+          <el-row :gutter="10" style="margin-bottom:10px;">
+            <el-col :span="12">
+              <el-input v-model="studentSearch" placeholder="搜索学生名称" clearable @input="filterAvailableStudents"/>
+            </el-col>
+            <el-col :span="12">
+              <el-input v-model="studentIdSearch" placeholder="搜索学号" clearable @input="filterAvailableStudents"/>
+            </el-col>
+          </el-row>
           <el-table :data="filteredAvailableStudents" v-loading="loadingAvailable" height="360px">
             <el-table-column prop="id" label="学号" width="80"></el-table-column>
             <el-table-column prop="stuName" label="学生姓名"></el-table-column>
@@ -58,6 +65,7 @@ const allStudents = ref([]); // For manual filtering or transfer component
 const availableStudents = ref([]); // For two-list display
 const filteredAvailableStudents = ref([]);
 const studentSearch = ref('');
+const studentIdSearch = ref('');
 
 
 const loadingAssigned = ref(false);
@@ -102,12 +110,14 @@ const fetchAvailableStudents = async () => {
 };
 
 const filterAvailableStudents = () => {
-  if(!studentSearch.value) {
+  if(!studentSearch.value && !studentIdSearch.value) {
     filteredAvailableStudents.value = [...availableStudents.value];
   } else {
-    filteredAvailableStudents.value = availableStudents.value.filter(s =>
-      s.stuName.toLowerCase().includes(studentSearch.value.toLowerCase())
-    );
+    filteredAvailableStudents.value = availableStudents.value.filter(s => {
+      const nameMatch = !studentSearch.value || s.stuName.toLowerCase().includes(studentSearch.value.toLowerCase());
+      const idMatch = !studentIdSearch.value || s.id.toString().includes(studentIdSearch.value);
+      return nameMatch && idMatch;
+    });
   }
 };
 

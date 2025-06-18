@@ -5,6 +5,14 @@
   <div v-else class="app-container" :class="{ 'dark-theme': isDarkMode, 'topbar-layout': isTopbarLayout }">
     <!-- 顶部导航栏模式 -->
     <el-container v-if="isTopbarLayout" class="main-container topbar-container">
+      <!-- 移动端导航菜单遮罩 -->
+      <div 
+        class="mobile-nav-overlay" 
+        :class="{ show: isMobileMenuOpen }"
+        @click="isMobileMenuOpen = false"
+        v-show="isMobile"
+      ></div>
+      
       <el-header class="topbar-header">
         <!-- 左侧Logo区域 -->
         <div class="topbar-logo">
@@ -12,21 +20,32 @@
             <el-icon size="32" :color="isDarkMode ? '#ffffff' : '#3b82f6'"><OfficeBuilding /></el-icon>
           </div>
           <h2 class="title-topbar">企业内部培训系统</h2>
+          <!-- 移动端汉堡菜单按钮 -->
+          <el-button 
+            class="mobile-menu-btn" 
+            @click="toggleMobileMenu" 
+            :icon="Menu"
+            circle
+            size="small"
+            type="primary"
+            v-show="isMobile"
+          />
         </div>
         
         <!-- 中间导航菜单 -->
-        <div class="topbar-nav">
+        <div class="topbar-nav" :class="{ 'mobile-nav-open': isMobileMenuOpen }">
           <el-menu
             :default-active="activeMenu"
             class="el-menu-horizontal"
-            mode="horizontal"
+            :mode="isMobile ? 'vertical' : 'horizontal'"
             background-color="transparent"
             :text-color="isDarkMode ? '#e2e8f0' : '#606266'"
             :active-text-color="isDarkMode ? '#60a5fa' : '#3b82f6'"
             :ellipsis="false"
             router
+            @select="handleMenuSelect"
           >
-            <el-menu-item index="/dashboard" style="margin-top: 9px;">
+            <el-menu-item index="/dashboard" :style="isMobile ? '' : 'margin-top: 9px;'">
               <el-icon><Odometer /></el-icon>
               <span>仪表盘</span>
             </el-menu-item>
@@ -72,6 +91,7 @@
             circle
             size="small"
             type="primary"
+            v-show="!isMobile"
           />
           <!-- 主题切换按钮 -->
           <el-button 
@@ -235,7 +255,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -260,6 +280,10 @@ const isDarkMode = ref(false)
 // 导航栏布局模式
 const isTopbarLayout = computed(() => viewModeStore.isTopbarLayout)
 
+// 移动端检测
+const isMobile = ref(false)
+const isMobileMenuOpen = ref(false)
+
 // 从store获取用户信息
 const userInfo = computed(() => userStore.userInfo)
 
@@ -277,6 +301,31 @@ const toggleTheme = () => {
 // 切换导航栏布局
 const toggleNavigationLayout = () => {
   viewModeStore.toggleNavigationLayout()
+}
+
+// 切换移动端菜单
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
+}
+
+// 处理菜单选择（移动端时关闭菜单）
+const handleMenuSelect = () => {
+  if (isMobile.value) {
+    isMobileMenuOpen.value = false
+  }
+}
+
+// 检测屏幕尺寸
+const checkScreenSize = () => {
+  isMobile.value = window.innerWidth <= 768
+  if (!isMobile.value) {
+    isMobileMenuOpen.value = false
+  }
+}
+
+// 处理窗口大小变化
+const handleResize = () => {
+  checkScreenSize()
 }
 
 // 处理登出
@@ -375,6 +424,15 @@ onMounted(() => {
   
   // 初始化用户状态
   userStore.initializeUser()
+  
+  // 初始化移动端检测
+  checkScreenSize()
+  window.addEventListener('resize', handleResize)
+})
+
+// 组件卸载时清理事件监听器
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 
 // 监听主题变化
@@ -974,6 +1032,30 @@ watch(isDarkMode, (newVal) => {
   }
 }
 
+/* 移动端汉堡菜单按钮样式 */
+.mobile-menu-btn {
+  display: none;
+}
+
+/* 移动端导航菜单遮罩 */
+.mobile-nav-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.mobile-nav-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* 响应式设计 - 顶部导航栏 */
 @media (max-width: 1200px) {
   .topbar-nav .el-menu-horizontal {
@@ -989,23 +1071,118 @@ watch(isDarkMode, (newVal) => {
 @media (max-width: 768px) {
   .topbar-header {
     padding: 0 12px;
+    position: relative;
   }
   
   .topbar-logo {
     min-width: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
   }
   
   .title-topbar {
     font-size: 14px;
+    margin-right: auto;
+  }
+  
+  .mobile-menu-btn {
+    display: flex !important;
+    margin-left: 12px;
+  }
+  
+  .topbar-nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .topbar-nav.mobile-nav-open {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .topbar-nav .el-menu-horizontal {
+    border-right: none;
+  }
+  
+  .topbar-nav .el-menu-vertical {
+    border-right: none;
+    background: transparent;
+  }
+  
+  .topbar-nav .el-menu-item,
+  .topbar-nav .el-sub-menu {
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .topbar-nav .el-menu-item:last-child,
+  .topbar-nav .el-sub-menu:last-child {
+    border-bottom: none;
   }
   
   .topbar-controls {
-    min-width: 120px;
+    min-width: 80px;
     gap: 8px;
   }
   
   .username-topbar {
     display: none;
+  }
+  
+  .layout-toggle-btn {
+     display: none;
+   }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+  .topbar-header {
+    padding: 0 8px;
+  }
+  
+  .topbar-logo {
+    min-width: 120px;
+  }
+  
+  .company-logo-topbar {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .title-topbar {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .topbar-controls {
+    min-width: 60px;
+  }
+  
+  .user-info-topbar .el-avatar {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  .theme-toggle-btn-topbar {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  .mobile-menu-btn {
+    width: 28px !important;
+    height: 28px !important;
   }
 }
 </style>

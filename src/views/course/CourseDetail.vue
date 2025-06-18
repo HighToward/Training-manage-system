@@ -31,7 +31,7 @@
             <div class="course-info">
               <div class="info-item">
                 <label>课程价格：</label>
-                <span class="price">¥{{ (courseDetail.couPrice / 100).toFixed(2) }}</span>
+                <span class="price">¥{{ courseDetail.couPrice }}</span>
               </div>
               <div class="info-item">
                 <label>创建时间：</label>
@@ -479,6 +479,14 @@
             style="width: 100%"
             format="YYYY-MM-DD HH:mm:ss"
             value-format="YYYY-MM-DD HH:mm:ss"
+          />
+        </el-form-item>
+        <el-form-item label="实践内容" prop="praMain">
+          <el-input 
+            v-model="practiceForm.praMain" 
+            type="textarea" 
+            :rows="4"
+            placeholder="请输入实践内容" 
           />
         </el-form-item>
         <el-form-item label="状态" prop="status">
